@@ -10,7 +10,7 @@
 
 **Find the best PGs & hostels based on real student reviews — not just owner listings.**
 
-[Live Demo](#) · [Report Bug](../../issues) · [Request Feature](../../issues)
+[Live Demo](https://stay-scout-six.vercel.app/) · [Report Bug](../../issues) · [Request Feature](../../issues)
 
 </div>
 
