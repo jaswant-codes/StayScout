@@ -3,66 +3,89 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, firebaseInitialized } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
-import { useReviews, addReview } from '../hooks/useReviews';
+import { useReviews } from '../hooks/useReviews';
 import { mockProperties } from '../hooks/useProperties';
-import { generateReviewSummary } from '../utils/reviewSummary';
-import { formatCurrency, REVIEW_TAGS } from '../utils/helpers';
+import { formatCurrency } from '../utils/helpers';
+import { useAnalytics } from '../hooks/useAnalytics';
+
 import ImageGallery from '../components/ImageGallery';
-import StarRating from '../components/StarRating';
-import FacilityTag from '../components/FacilityTag';
-import ReviewCard from '../components/ReviewCard';
+import PropertySummary from '../components/PropertySummary';
+import QuickFacts from '../components/QuickFacts';
+import PricingBreakdown from '../components/PricingBreakdown';
+import RoomOptions from '../components/RoomOptions';
+import AmenitiesSection from '../components/AmenitiesSection';
+import PropertyDescription from '../components/PropertyDescription';
+import FoodSection from '../components/FoodSection';
+import SafetySection from '../components/SafetySection';
+import PropertyRules from '../components/PropertyRules';
+import LocationSection from '../components/LocationSection';
+import ReviewCards from '../components/ReviewCards';
+import OwnerProfile from '../components/OwnerProfile';
+import SimilarProperties from '../components/SimilarProperties';
+import RecentlyViewedProperties from '../components/RecentlyViewedProperties';
+import ContactOwnerCard from '../components/ContactOwnerCard';
+
 import Loader from '../components/Loader';
-import {
-  MapPin,
-  User,
-  ArrowLeft,
-  Sparkles,
-  CheckCircle,
-  XCircle,
-  Send,
-} from 'lucide-react';
+import EmptyState from '../components/EmptyState';
+import SkeletonCard from '../components/SkeletonCard';
+
+import { ArrowLeft, SearchX, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 
 export default function PropertyDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, userProfile, isStudent } = useAuth();
+  const { user, userProfile } = useAuth();
+  const { trackPropertyView } = useAnalytics();
+  
   const { reviews, loading: reviewsLoading, avgRating } = useReviews(id);
+  
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showDemoAlert, setShowDemoAlert] = useState(false);
-
-  // Review form
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState('');
-  const [selectedTags, setSelectedTags] = useState([]);
-  const [submitting, setSubmitting] = useState(false);
-  const [reviewSuccess, setReviewSuccess] = useState(false);
 
   useEffect(() => {
     async function fetchProperty() {
       try {
+        setLoading(true);
+        // Find in mock data first
         const demoProp = mockProperties.find(p => p.id === id);
         if (demoProp) {
           setProperty(demoProp);
+          trackPropertyView(demoProp.id, demoProp.name);
+          
+          let history = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+          history = [demoProp.id, ...history.filter(h => h !== demoProp.id)].slice(0, 10);
+          localStorage.setItem('recentlyViewed', JSON.stringify(history));
+          setLoading(false);
           return;
         }
 
         if (!firebaseInitialized || !db) {
+          setError('Property not found.');
+          setLoading(false);
           return;
         }
 
         const docSnap = await getDoc(doc(db, 'properties', id));
         if (docSnap.exists()) {
-          setProperty({ id: docSnap.id, ...docSnap.data() });
+          const data = { id: docSnap.id, ...docSnap.data() };
+          setProperty(data);
+          trackPropertyView(data.id, data.name);
+        } else {
+          setError('Property not found.');
         }
       } catch (err) {
         console.error('Error fetching property:', err);
+        setError('Failed to load property details.');
       } finally {
         setLoading(false);
       }
     }
+    
     fetchProperty();
-  }, [id]);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [id, trackPropertyView]);
 
   const handleContactOwner = () => {
     if (!user) {
@@ -79,344 +102,212 @@ export default function PropertyDetails() {
     navigate('/chat', { state: { propertyId: id, ownerId: property.ownerId } });
   };
 
-  const handleSubmitReview = async (e) => {
-    e.preventDefault();
-    if (!rating || !comment.trim()) return;
-
-    setSubmitting(true);
-    try {
-      await addReview({
-        propertyId: id,
-        userId: user.uid,
-        userName: userProfile.name,
-        rating,
-        comment: comment.trim(),
-        tags: selectedTags,
-      });
-      setRating(0);
-      setComment('');
-      setSelectedTags([]);
-      setReviewSuccess(true);
-      setTimeout(() => setReviewSuccess(false), 3000);
-    } catch (err) {
-      console.error('Error submitting review:', err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const toggleTag = (tag) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-    );
-  };
-
-  const reviewSummary = generateReviewSummary(reviews);
-
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <Loader text="Loading property..." />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+          <div className="lg:col-span-2 space-y-8">
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+          <div className="hidden lg:block">
+            <SkeletonCard />
+          </div>
+        </div>
       </div>
     );
   }
 
-  if (!property) {
+  if (error || !property) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-bold text-text-primary mb-2">Property not found</h2>
-          <Link to="/" className="text-accent-400 hover:text-accent-300">
-            ← Back to home
-          </Link>
-        </div>
+        <EmptyState 
+          icon={SearchX}
+          title="Property Not Found"
+          description="The property you are looking for might have been removed or is temporarily unavailable."
+          actionLabel="Back to Search"
+          actionLink="/search"
+        />
       </div>
     );
   }
 
+  const finalAvgRating = avgRating || property.avgRating;
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-      {/* Back */}
-      <Link
-        to="/"
-        className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary transition-colors mb-6"
-      >
-        <ArrowLeft size={16} />
-        Back to properties
-      </Link>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-28 lg:pb-16 animate-fade-in">
+      
+      {/* 1. Impression & Viability */}
+      <div className="mb-6">
+        <Link
+          to="/search"
+          className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-white transition-colors mb-4"
+        >
+          <ArrowLeft size={16} />
+          Back to Search
+        </Link>
+        
+        <ImageGallery images={property.images} title={property.name} />
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* Gallery */}
-          <ImageGallery images={property.images || []} />
+      <PropertySummary property={{...property, avgRating: finalAvgRating}} />
+      <div className="mt-8">
+        <QuickFacts property={property} />
+      </div>
 
-          {/* Info */}
-          <div className="animate-fade-in">
-            <div className="flex items-start justify-between flex-wrap gap-4 mb-4">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-text-primary mb-2">
-                  {property.name}
-                </h1>
-                <div className="flex items-center gap-2 text-text-secondary">
-                  <MapPin size={16} />
-                  <span>{property.area}, {property.city}</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <div className="text-2xl font-bold gradient-text">
-                    {formatCurrency(property.rent)}
-                  </div>
-                  <span className="text-xs text-text-muted">per month</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Rating + Availability */}
-            <div className="flex items-center gap-4 mb-6">
-              <div className="flex items-center gap-2">
-                <StarRating rating={Math.round(avgRating)} size={18} />
-                <span className="text-sm font-medium text-text-primary">
-                  {avgRating || '0.0'}
-                </span>
-                <span className="text-sm text-text-muted">
-                  ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
-                </span>
-              </div>
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${
-                  property.availability === 'available'
-                    ? 'bg-success/15 text-success border border-success/20'
-                    : 'bg-error/15 text-error border border-error/20'
-                }`}
-              >
-                {property.availability === 'available' ? (
-                  <><CheckCircle size={12} /> Available</>
-                ) : (
-                  <><XCircle size={12} /> Full</>
-                )}
-              </span>
-            </div>
-
-            {/* Description */}
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold text-text-primary mb-3">Description</h2>
-              <p className="text-text-secondary leading-relaxed whitespace-pre-wrap">
-                {property.description}
-              </p>
-            </div>
-
-            {/* Facilities */}
-            {property.facilities?.length > 0 && (
-              <div className="mb-6">
-                <h2 className="text-lg font-semibold text-text-primary mb-3">Facilities</h2>
-                <div className="flex flex-wrap gap-2">
-                  {property.facilities.map((f) => (
-                    <FacilityTag key={f} facility={f} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* AI Review Summary */}
-          {reviewSummary && (
-            <div className="glass rounded-xl p-5 animate-fade-in">
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles size={18} className="text-accent-400" />
-                <h3 className="text-sm font-semibold text-text-primary">AI Review Summary</h3>
-              </div>
-              <p className="text-sm text-text-secondary leading-relaxed">{reviewSummary}</p>
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-10 mt-12">
+        {/* Left Column: The Deep Dive */}
+        <div className="space-y-12">
+          
+          {/* 2. Affordability & Configurations */}
+          <PricingBreakdown property={property} />
+          
+          {property.roomTypes && property.roomTypes.length > 0 && (
+            <section>
+              <h2 className="text-2xl font-bold text-white mb-6">Room Options</h2>
+              <RoomOptions rooms={property.roomTypes} />
+            </section>
           )}
 
-          {/* Reviews */}
-          <div className="animate-fade-in">
-            <h2 className="text-lg font-semibold text-text-primary mb-4">
-              Student Reviews ({reviews.length})
-            </h2>
+          <hr className="border-border" />
 
-            {/* Write Review Form */}
-            {isStudent && (
-              <div className="glass rounded-xl p-5 mb-6">
-                <h3 className="text-sm font-semibold text-text-primary mb-4">
-                  Write a Review
-                </h3>
+          {/* 3. Deep Dive */}
+          <AmenitiesSection facilities={property.facilities || []} />
+          
+          {property.food && (
+            <>
+              <hr className="border-border" />
+              <FoodSection food={property.food} />
+            </>
+          )}
 
-                {reviewSuccess && (
-                  <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10 border border-success/20 text-success text-sm mb-4 animate-fade-in">
-                    <CheckCircle size={16} />
-                    Review submitted successfully!
-                  </div>
-                )}
+          {property.safety && (
+            <>
+              <hr className="border-border" />
+              <SafetySection safety={property.safety} />
+            </>
+          )}
 
-                <form onSubmit={handleSubmitReview} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-medium text-text-secondary mb-2">
-                      Your Rating
-                    </label>
-                    <StarRating
-                      rating={rating}
-                      interactive
-                      onChange={setRating}
-                      size={24}
-                    />
-                  </div>
+          {property.rules && (
+            <>
+              <hr className="border-border" />
+              <section>
+                <h2 className="text-2xl font-bold text-white mb-6">House Rules</h2>
+                <PropertyRules rules={property.rules} />
+              </section>
+            </>
+          )}
 
-                  <div>
-                    <label className="block text-xs font-medium text-text-secondary mb-2">
-                      Tags (optional)
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {REVIEW_TAGS.map((tag) => (
-                        <button
-                          key={tag}
-                          type="button"
-                          onClick={() => toggleTag(tag)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                            selectedTags.includes(tag)
-                              ? 'bg-accent-500 text-white'
-                              : 'bg-dark-600 text-text-secondary hover:text-text-primary border border-border'
-                          }`}
-                        >
-                          {tag}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+          {property.description && (
+            <>
+              <hr className="border-border" />
+              <PropertyDescription description={property.description} />
+            </>
+          )}
 
-                  <div>
-                    <label className="block text-xs font-medium text-text-secondary mb-2">
-                      Your Review
-                    </label>
-                    <textarea
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value)}
-                      placeholder="Share your experience..."
-                      rows={4}
-                      required
-                      className="input-field resize-none"
-                    />
-                  </div>
+          <hr className="border-border" />
 
-                  <button
-                    type="submit"
-                    disabled={submitting || !rating}
-                    className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {submitting ? (
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        <Send size={14} />
-                        Submit Review
-                      </>
-                    )}
-                  </button>
-                </form>
-              </div>
-            )}
+          {/* Location & Commute */}
+          <LocationSection 
+            location={property.location || `${property.area}, ${property.city}`}
+            commute={property.commute || []}
+            nearby={property.nearby || []}
+          />
 
-            {!isStudent && !user && (
-              <div className="glass rounded-xl p-5 mb-6 text-center">
-                <p className="text-sm text-text-secondary mb-3">
-                  Sign in as a student to write a review
-                </p>
-                <Link to="/login" className="btn-primary text-sm">
-                  Sign in
-                </Link>
-              </div>
-            )}
+          <hr className="border-border" />
 
-            {/* Reviews List */}
-            {reviewsLoading ? (
-              <Loader text="Loading reviews..." />
-            ) : reviews.length === 0 ? (
-              <div className="text-center py-12 bg-dark-700/30 rounded-xl border border-border">
-                <p className="text-text-muted text-sm">No reviews yet. Be the first!</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {reviews.map((review) => (
-                  <ReviewCard key={review.id} review={review} />
-                ))}
-              </div>
-            )}
-          </div>
+          {/* 4. Trust & Social Proof */}
+          <section>
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-2xl font-bold text-white">Guest Reviews</h2>
+            </div>
+            {/* Reviews Component updated by Subagent */}
+            <ReviewCards 
+              reviews={reviews || []} 
+              loading={reviewsLoading} 
+              propertyId={id} 
+              user={user} 
+              userProfile={userProfile}
+              categoryRatings={property.categoryRatings}
+              overallRating={finalAvgRating}
+            />
+          </section>
+
         </div>
 
-        {/* Sidebar */}
-        <div className="lg:col-span-1">
-          <div className="sticky top-24 space-y-4">
-            {/* Owner Info */}
-            <div className="glass rounded-xl p-5">
-              <h3 className="text-sm font-semibold text-text-primary mb-3">
-                Listed by
-              </h3>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-accent-500/20 flex items-center justify-center">
-                  <User size={18} className="text-accent-400" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-text-primary">
-                    {property.ownerName || 'Property Owner'}
-                  </p>
-                  <p className="text-xs text-text-muted">Verified Owner</p>
+        {/* Right Column: Decision & Conversion */}
+        <div className="relative">
+          <div className="sticky top-24 space-y-6">
+            
+            <ContactOwnerCard 
+              property={property} 
+              onContact={handleContactOwner} 
+            />
+
+            {/* About Owner Snippet */}
+            {property.ownerDetails ? (
+              <OwnerProfile owner={property.ownerDetails} />
+            ) : (
+              <div className="glass p-6 rounded-2xl border border-border">
+                <h3 className="text-lg font-semibold text-white mb-4">Meet your host</h3>
+                <div className="text-white font-medium">Owner ID: {property.ownerId.slice(0, 8)}</div>
+                <div className="text-sm text-text-secondary flex items-center gap-1 mt-2">
+                  <CheckCircle size={14} className="text-success" /> Verified Identity
                 </div>
               </div>
+            )}
+
+            <div className="flex items-start gap-2 p-4 bg-dark-700/50 rounded-xl text-sm text-text-secondary border border-border">
+              <Info size={18} className="text-accent-500 flex-shrink-0 mt-0.5" />
+              <p>StayScout secures your payment and protects your booking. Never transfer money directly outside the platform.</p>
             </div>
 
-            {/* Quick Stats */}
-            <div className="glass rounded-xl p-5">
-              <h3 className="text-sm font-semibold text-text-primary mb-3">
-                Quick Info
-              </h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-text-muted">Rent</span>
-                  <span className="font-semibold text-text-primary">
-                    {formatCurrency(property.rent)}/mo
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-text-muted">Location</span>
-                  <span className="text-text-secondary">{property.city}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-text-muted">Rating</span>
-                  <span className="text-text-secondary">{avgRating || '—'}/5</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-text-muted">Reviews</span>
-                  <span className="text-text-secondary">{reviews.length}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-text-muted">Status</span>
-                  <span className={property.availability === 'available' ? 'text-success' : 'text-error'}>
-                    {property.availability === 'available' ? 'Available' : 'Full'}
-                  </span>
-                </div>
+            {showDemoAlert && (
+              <div className="p-4 rounded-xl bg-warning/10 border border-warning/20 flex items-start gap-3 animate-fade-in">
+                <AlertTriangle className="text-warning flex-shrink-0" size={20} />
+                <p className="text-sm text-warning/90">
+                  This is a functional demo property. Real messaging is disabled. Create your own property from the Owner Dashboard to test chat!
+                </p>
               </div>
-              
-              {/* Contact Button */}
-              <div className="mt-6">
-                <button 
-                  onClick={handleContactOwner}
-                  className="w-full btn-primary py-2.5 flex items-center justify-center gap-2"
-                >
-                  <Send size={16} />
-                  Contact Owner
-                </button>
-                {showDemoAlert && (
-                  <div className="mt-3 p-2 bg-warning/10 border border-warning/20 rounded-lg flex items-center gap-2 text-warning text-xs animate-fade-in">
-                    <XCircle size={14} />
-                    Demo owner cannot be contacted
-                  </div>
-                )}
-              </div>
-            </div>
+            )}
+            
           </div>
+        </div>
+      </div>
+
+      {/* Cross-Sell */}
+      <div className="mt-20 pt-16 border-t border-border space-y-20">
+        <section>
+          <h2 className="text-2xl font-bold text-white mb-8">More properties in {property.city}</h2>
+          <SimilarProperties 
+            currentPropertyId={id} 
+            propertyType={property.propertyType} 
+            city={property.city} 
+          />
+        </section>
+
+        <section>
+          <h2 className="text-2xl font-bold text-white mb-8">Recently viewed</h2>
+          <RecentlyViewedProperties />
+        </section>
+      </div>
+
+      {/* Mobile Fixed Contact Action Bar */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-dark-800 border-t border-border z-40 flex items-center justify-between shadow-[0_-4px_20px_rgba(0,0,0,0.5)] pb-[env(safe-area-inset-bottom,16px)]">
+        <div>
+          <div className="text-white font-bold text-lg">
+            {formatCurrency(property.rent)} <span className="text-sm font-normal text-text-secondary">/ month</span>
+          </div>
+          <div className="text-xs text-text-muted mt-0.5">Move-in ready</div>
+        </div>
+        <div className="flex gap-2">
+          <button 
+            onClick={handleContactOwner}
+            className="btn-primary px-6"
+          >
+            Contact
+          </button>
         </div>
       </div>
     </div>
