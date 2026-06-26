@@ -14,8 +14,10 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const PropertyDetails = lazy(() => import('./pages/PropertyDetails'));
 const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
 const OwnerDashboard = lazy(() => import('./pages/OwnerDashboard'));
+const OwnerCRM = lazy(() => import('./pages/OwnerCRM'));
+const OwnerTrustCenter = lazy(() => import('./pages/OwnerTrustCenter'));
 const AddProperty = lazy(() => import('./pages/AddProperty'));
-const EditProperty = lazy(() => import('./pages/EditProperty'));
+const PropertyManager = lazy(() => import('./pages/PropertyManager'));
 const Chat = lazy(() => import('./pages/Chat'));
 const Search = lazy(() => import('./pages/Search'));
 
@@ -63,6 +65,22 @@ export default function App() {
                   }
                 />
                 <Route
+                  path="/owner/crm"
+                  element={
+                    <ProtectedRoute role="owner">
+                      <OwnerCRM />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/owner/trust-center"
+                  element={
+                    <ProtectedRoute role="owner">
+                      <OwnerTrustCenter />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/owner/add-property"
                   element={
                     <ProtectedRoute role="owner">
@@ -74,7 +92,7 @@ export default function App() {
                   path="/owner/edit-property/:id"
                   element={
                     <ProtectedRoute role="owner">
-                      <EditProperty />
+                      <PropertyManager />
                     </ProtectedRoute>
                   }
                 />
