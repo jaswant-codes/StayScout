@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   collection,
   query,
@@ -11,12 +11,13 @@ import {
   where,
   getDocs,
   limit,
+  startAfter
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, firebaseInitialized } from '../lib/firebase';
 import indianCities from '../data/indianCities.json';
 
-// High-quality mock data for functional demo properties
+// High-quality expanded mock data
 export let mockProperties = [
   {
     id: 'demo-prop-1',
@@ -25,8 +26,11 @@ export let mockProperties = [
     city: 'Delhi',
     area: 'North Campus',
     rent: 12000,
+    deposit: 12000,
+    preference: 'boys',
     description: 'A premium student accommodation with all modern amenities. Walking distance to major colleges. Includes daily housekeeping, 3-time meals, and high-speed WiFi.',
     availability: 'available',
+    moveInDate: '2026-07-01',
     facilities: ['WiFi', 'AC', 'Food Included', 'Laundry', 'Security'],
     images: [
       'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80',
@@ -36,7 +40,9 @@ export let mockProperties = [
     ownerId: 'demo-owner-1',
     avgRating: 4.8,
     reviewCount: 124,
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
+    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+    landmark: 'Near DU North Campus',
+    college: 'Delhi University'
   },
   {
     id: 'demo-prop-2',
@@ -45,8 +51,11 @@ export let mockProperties = [
     city: 'Pune',
     area: 'Viman Nagar',
     rent: 8500,
+    deposit: 8500,
+    preference: 'girls',
     description: 'Vibrant student community hostel. Features study rooms, gaming zones, and a fully equipped gym. Perfect for making connections.',
     availability: 'available',
+    moveInDate: '2026-06-30',
     facilities: ['WiFi', 'Gym', 'Security', 'Library'],
     images: [
       'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800&q=80',
@@ -57,6 +66,8 @@ export let mockProperties = [
     avgRating: 4.9,
     reviewCount: 89,
     createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
+    landmark: 'Phoenix Mall',
+    college: 'Symbiosis International University'
   },
   {
     id: 'demo-prop-3',
@@ -65,8 +76,11 @@ export let mockProperties = [
     city: 'Bangalore',
     area: 'Koramangala',
     rent: 15000,
+    deposit: 30000,
+    preference: 'any',
     description: 'Fully furnished shared apartment. No broker fees. Move-in ready with premium appliances and smart TV.',
     availability: 'available',
+    moveInDate: '2026-06-25',
     facilities: ['WiFi', 'AC', 'TV', 'Washing Machine'],
     images: [
       'https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?w=800&q=80',
@@ -76,84 +90,218 @@ export let mockProperties = [
     ownerId: 'demo-owner-3',
     avgRating: 4.7,
     reviewCount: 210,
-    createdAt: new Date(Date.now() - 86400000 * 1).toISOString(), // 1 day ago
+    createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
+    landmark: 'Sony World Signal',
+    college: 'Christ University'
+  },
+  {
+    id: 'demo-prop-4',
+    name: 'Cozy PG for Girls',
+    propertyType: 'pg',
+    city: 'Mumbai',
+    area: 'Andheri West',
+    rent: 18000,
+    deposit: 20000,
+    preference: 'girls',
+    description: 'Safe and secure PG for girls with strict security. Meals not included but kitchen available.',
+    availability: 'available',
+    moveInDate: '2026-07-15',
+    facilities: ['WiFi', 'Security', 'Washing Machine'],
+    images: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80'],
+    ownerId: 'demo-owner-4',
+    avgRating: 4.5,
+    reviewCount: 45,
+    createdAt: new Date(Date.now() - 86400000 * 10).toISOString(),
+    landmark: 'Andheri Station',
+    college: 'Mithibai College'
+  },
+  {
+    id: 'demo-prop-5',
+    name: 'Boys Hostel Hub',
+    propertyType: 'hostel',
+    city: 'Chennai',
+    area: 'Guindy',
+    rent: 6000,
+    deposit: 10000,
+    preference: 'boys',
+    description: 'Affordable hostel for boys. Close to IIT Madras.',
+    availability: 'booked',
+    moveInDate: '2026-08-01',
+    facilities: ['Food Included', 'Security'],
+    images: ['https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800&q=80'],
+    ownerId: 'demo-owner-5',
+    avgRating: 3.8,
+    reviewCount: 20,
+    createdAt: new Date(Date.now() - 86400000 * 20).toISOString(),
+    landmark: 'Guindy National Park',
+    college: 'IIT Madras'
+  },
+  {
+    id: 'demo-prop-6',
+    name: 'Luxury Studio Flat',
+    propertyType: 'flat',
+    city: 'Pune',
+    area: 'Koregaon Park',
+    rent: 25000,
+    deposit: 50000,
+    preference: 'any',
+    description: 'High end studio flat for those who want privacy. Includes all modern appliances.',
+    availability: 'available',
+    moveInDate: '2026-07-05',
+    facilities: ['WiFi', 'AC', 'TV', 'Washing Machine', 'Gym'],
+    images: ['https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?w=800&q=80'],
+    ownerId: 'demo-owner-6',
+    avgRating: 4.2,
+    reviewCount: 15,
+    createdAt: new Date(Date.now() - 86400000 * 8).toISOString(),
+    landmark: 'Osho Ashram',
+    college: 'Fergusson College'
   }
 ];
 
-export function useProperties(filters = {}) {
+// Fuzzy match for typo tolerance (levenshtein distance based or simple partial)
+function isFuzzyMatch(str, query) {
+  if (!query) return true;
+  if (!str) return false;
+  
+  const s = String(str).toLowerCase();
+  const q = String(query).toLowerCase();
+  
+  if (s.includes(q)) return true;
+  
+  let i = 0, j = 0;
+  while(i < s.length && j < q.length) {
+    if(s[i] === q[j]) j++;
+    i++;
+  }
+  return j === q.length;
+}
+
+export function useProperties(filters = {}, sortBy = 'newest') {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [lastVisible, setLastVisible] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
 
-  useEffect(() => {
+  const applyClientFilters = useCallback((items) => {
+    let filtered = [...items];
+
+    if (filters.minBudget) filtered = filtered.filter(p => p.rent >= Number(filters.minBudget));
+    if (filters.maxBudget) filtered = filtered.filter(p => p.rent <= Number(filters.maxBudget));
+    if (filters.deposit) filtered = filtered.filter(p => (p.deposit || 0) <= Number(filters.deposit));
+    if (filters.availability && filters.availability !== 'all') {
+      filtered = filtered.filter(p => p.availability === filters.availability);
+    }
+    if (filters.preference && filters.preference !== 'all') {
+      filtered = filtered.filter(p => p.preference === filters.preference);
+    }
+    if (filters.moveInDate) {
+      filtered = filtered.filter(p => new Date(p.moveInDate || new Date()) >= new Date(filters.moveInDate));
+    }
+    
+    if (filters.facilities && filters.facilities.length > 0) {
+      filtered = filtered.filter(p =>
+        filters.facilities.every(f => p.facilities?.includes(f))
+      );
+    }
+
+    if (filters.location) {
+      const loc = filters.location.toLowerCase();
+      filtered = filtered.filter(p =>
+        isFuzzyMatch(p.city, loc) || isFuzzyMatch(p.area, loc)
+      );
+    }
+
+    if (filters.globalSearch) {
+      const qs = filters.globalSearch;
+      filtered = filtered.filter(p => 
+        isFuzzyMatch(p.name, qs) || 
+        isFuzzyMatch(p.city, qs) || 
+        isFuzzyMatch(p.area, qs) ||
+        isFuzzyMatch(p.landmark, qs) ||
+        isFuzzyMatch(p.college, qs)
+      );
+    }
+
+    if (sortBy === 'lowest_rent') filtered.sort((a, b) => a.rent - b.rent);
+    else if (sortBy === 'highest_rent') filtered.sort((a, b) => b.rent - a.rent);
+    else if (sortBy === 'top_rated') filtered.sort((a, b) => (b.avgRating || 0) - (a.avgRating || 0));
+    else filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // newest
+
+    return filtered;
+  }, [filters, sortBy]);
+
+  const fetchProperties = useCallback(async (isLoadMore = false) => {
+    if (!isLoadMore) {
+      setLoading(true);
+    }
+    
     if (!firebaseInitialized || !db) {
-      let filtered = [...mockProperties];
-      if (filters.minBudget) filtered = filtered.filter((p) => p.rent >= Number(filters.minBudget));
-      if (filters.maxBudget) filtered = filtered.filter((p) => p.rent <= Number(filters.maxBudget));
-      if (filters.location) {
-        const loc = filters.location.toLowerCase();
-        filtered = filtered.filter((p) => p.city?.toLowerCase().includes(loc) || p.area?.toLowerCase().includes(loc));
-      }
-      if (filters.facilities?.length > 0) {
-        filtered = filtered.filter((p) =>
-          filters.facilities.every((f) => p.facilities?.includes(f))
-        );
-      }
-      if (filters.propertyType && filters.propertyType !== 'all') {
-        filtered = filtered.filter((p) => p.propertyType === filters.propertyType);
-      }
-      setProperties(filtered);
+      const filtered = applyClientFilters(mockProperties);
+      
+      const startIdx = isLoadMore ? properties.length : 0;
+      const paginated = filtered.slice(0, startIdx + 3);
+      
+      setProperties(paginated);
+      setHasMore(paginated.length < filtered.length);
       setLoading(false);
       return;
     }
 
-    let unsubscribe;
-    const timeout = setTimeout(() => { setLoading(false); }, 5000);
-
     try {
-      const q = query(collection(db, 'properties'), orderBy('createdAt', 'desc'));
+      let qList = [collection(db, 'properties')];
+      
+      if (filters.propertyType && filters.propertyType !== 'all') {
+        qList.push(where('propertyType', '==', filters.propertyType));
+      }
+      
+      qList.push(orderBy('createdAt', 'desc'));
+      qList.push(limit(10));
 
-      unsubscribe = onSnapshot(q, (snapshot) => {
-        clearTimeout(timeout);
-        let docs = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+      if (isLoadMore && lastVisible) {
+        qList.push(startAfter(lastVisible));
+      }
 
-        // Client-side filtering
-        if (filters.minBudget) docs = docs.filter((p) => p.rent >= Number(filters.minBudget));
-        if (filters.maxBudget) docs = docs.filter((p) => p.rent <= Number(filters.maxBudget));
-        if (filters.location) {
-          const loc = filters.location.toLowerCase();
-          docs = docs.filter(
-            (p) =>
-              p.city?.toLowerCase().includes(loc) ||
-              p.area?.toLowerCase().includes(loc)
-          );
-        }
-        if (filters.facilities?.length > 0) {
-          docs = docs.filter((p) =>
-            filters.facilities.every((f) => p.facilities?.includes(f))
-          );
-        }
-        if (filters.propertyType && filters.propertyType !== 'all') {
-          docs = docs.filter((p) => p.propertyType === filters.propertyType);
-        }
-
+      const q = query(...qList);
+      const snapshot = await getDocs(q);
+      
+      let docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      
+      if (snapshot.docs.length > 0) {
+        setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
+      }
+      setHasMore(snapshot.docs.length === 10);
+      
+      docs = applyClientFilters(docs);
+      
+      if (isLoadMore) {
+        setProperties(prev => [...prev, ...docs]);
+      } else {
         setProperties(docs);
-        setLoading(false);
-      }, (error) => {
-        console.error('Error fetching properties:', error);
-        setLoading(false);
-      });
-    } catch (err) {
-      console.error('Error setting up properties listener:', err);
+      }
+    } catch (error) {
+      console.error('Error fetching properties:', error);
+    } finally {
       setLoading(false);
     }
+  }, [filters, sortBy, lastVisible, properties.length, applyClientFilters]);
 
-    return () => {
-      clearTimeout(timeout);
-      if (unsubscribe) unsubscribe();
-    };
-  }, [filters.minBudget, filters.maxBudget, filters.location, filters.propertyType, JSON.stringify(filters.facilities)]);
+  useEffect(() => {
+    // Reset properties and lastVisible when filters change
+    setProperties([]);
+    setLastVisible(null);
+    setHasMore(true);
+    fetchProperties(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(filters), sortBy]);
 
-  return { properties, loading };
+  const loadMore = () => {
+    if (hasMore && !loading) {
+      fetchProperties(true);
+    }
+  };
+
+  return { properties, loading, loadMore, hasMore };
 }
 
 export function useOwnerProperties(ownerId) {

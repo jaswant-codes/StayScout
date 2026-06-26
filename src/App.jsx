@@ -17,6 +17,7 @@ const OwnerDashboard = lazy(() => import('./pages/OwnerDashboard'));
 const AddProperty = lazy(() => import('./pages/AddProperty'));
 const EditProperty = lazy(() => import('./pages/EditProperty'));
 const Chat = lazy(() => import('./pages/Chat'));
+const Search = lazy(() => import('./pages/Search'));
 
 export default function App() {
   return (
@@ -32,6 +33,7 @@ export default function App() {
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/property/:id" element={<PropertyDetails />} />
+                <Route path="/search" element={<Search />} />
 
                 {/* Student routes */}
                 <Route
