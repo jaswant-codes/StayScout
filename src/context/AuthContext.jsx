@@ -90,7 +90,7 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     if (!auth) {
       // Demo mode bypass: automatically guess role based on email word (e.g. 'owner@test.com' -> owner)
-      const fakeRole = email.toLowerCase().includes('owner') ? 'owner' : 'student';
+      const fakeRole = email.toLowerCase().includes('admin') ? 'admin' : email.toLowerCase().includes('owner') ? 'owner' : 'student';
       const demoUser = { uid: 'demo-12345', email };
       const demoProfile = { id: 'demo-12345', name: email.split('@')[0], role: fakeRole };
       setUser(demoUser);
@@ -202,6 +202,7 @@ export function AuthProvider({ children }) {
     setRememberMe,
     isStudent: userProfile?.role === 'student',
     isOwner: userProfile?.role === 'owner',
+    isAdmin: userProfile?.role === 'admin',
   };
 
   return (

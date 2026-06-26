@@ -23,7 +23,9 @@ export default function Login() {
       const { user, profile } = await login(email, password);
 
       // Redirect based on role
-      if (profile?.role === 'owner') {
+      if (profile?.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else if (profile?.role === 'owner') {
         navigate('/owner/dashboard');
       } else if (profile?.role === 'student') {
         navigate('/student/dashboard');

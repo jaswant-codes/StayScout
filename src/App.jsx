@@ -20,7 +20,14 @@ const AddProperty = lazy(() => import('./pages/AddProperty'));
 const PropertyManager = lazy(() => import('./pages/PropertyManager'));
 const Chat = lazy(() => import('./pages/Chat'));
 const Search = lazy(() => import('./pages/Search'));
-
+const AdminLayout = lazy(() => import('./components/admin/AdminLayout'));
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
+const AdminListings = lazy(() => import('./pages/admin/AdminListings'));
+const AdminVerification = lazy(() => import('./pages/admin/AdminVerification'));
+const AdminSupport = lazy(() => import('./pages/admin/AdminSupport'));
+const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
+const AdminReports = lazy(() => import('./pages/admin/AdminReports'));
 export default function App() {
   return (
     <BrowserRouter>
@@ -97,6 +104,24 @@ export default function App() {
                   }
                 />
               </Route>
+
+                {/* Admin routes */}
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute role="admin">
+                      <AdminLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route path="dashboard" element={<AdminDashboard />} />
+                  <Route path="users" element={<AdminUsers />} />
+                  <Route path="listings" element={<AdminListings />} />
+                  <Route path="verify" element={<AdminVerification />} />
+                  <Route path="reports" element={<AdminReports />} />
+                  <Route path="support" element={<AdminSupport />} />
+                  <Route path="settings" element={<AdminSettings />} />
+                </Route>
             </Routes>
           </Suspense>
         </AuthProvider>
