@@ -2,11 +2,17 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signOut,
   onAuthStateChanged,
+  sendPasswordResetEmail,
+  sendEmailVerification,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth, db, firebaseInitialized } from '../lib/firebase';
+import { auth, db, googleProvider, firebaseInitialized } from '../lib/firebase';
 
 const AuthContext = createContext(null);
 
@@ -101,6 +107,80 @@ export function AuthProvider({ children }) {
     return { user: cred.user, profile };
   };
 
+  const googleSignIn = async (role = 'student') => {
+    if (!auth || !googleProvider) {
+      // Demo mode
+      const demoUser = { uid: `demo-google-${Date.now()}`, email: 'demo.google@gmail.com' };
+      const demoProfile = { id: demoUser.uid, name: 'Google User', role, email: demoUser.email };
+      setUser(demoUser);
+      setUserProfile(demoProfile);
+      return { user: demoUser, profile: demoProfile };
+    }
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const firebaseUser = result.user;
+      
+      // Check if user profile exists
+      const profileDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+      let profile;
+      
+      if (profileDoc.exists()) {
+        profile = { id: profileDoc.id, ...profileDoc.data() };
+      } else {
+        // New user — create profile
+        profile = {
+          name: firebaseUser.displayName || 'User',
+          email: firebaseUser.email,
+          role,
+          photoURL: firebaseUser.photoURL || null,
+          createdAt: new Date().toISOString(),
+        };
+        await setDoc(doc(db, 'users', firebaseUser.uid), profile);
+        profile.id = firebaseUser.uid;
+      }
+      
+      setUserProfile(profile);
+      return { user: firebaseUser, profile };
+    } catch (err) {
+      if (err.code === 'auth/popup-closed-by-user') {
+        throw new Error('Sign-in popup was closed. Please try again.');
+      }
+      if (err.code === 'auth/unauthorized-domain') {
+        throw new Error('This domain is not authorized for Google sign-in. Please add it to your Firebase Console.');
+      }
+      if (err.code === 'auth/operation-not-allowed') {
+        throw new Error('Google sign-in is not enabled. Please enable it in Firebase Console → Authentication → Sign-in method.');
+      }
+      throw err;
+    }
+  };
+
+  const forgotPassword = async (email) => {
+    if (!auth) {
+      // Demo mode — simulate success
+      return { success: true, message: 'Demo mode: Password reset email would be sent to ' + email };
+    }
+    await sendPasswordResetEmail(auth, email);
+    return { success: true, message: 'Password reset email sent. Check your inbox.' };
+  };
+
+  const sendVerification = async () => {
+    if (!auth || !auth.currentUser) {
+      return { success: true, message: 'Demo mode: Verification email would be sent.' };
+    }
+    await sendEmailVerification(auth.currentUser);
+    return { success: true, message: 'Verification email sent. Check your inbox.' };
+  };
+
+  const setRememberMe = async (remember) => {
+    if (!auth) return;
+    try {
+      await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
+    } catch (err) {
+      console.error('Error setting persistence:', err);
+    }
+  };
+
   const logout = async () => {
     if (auth) {
       await signOut(auth);
@@ -116,6 +196,10 @@ export function AuthProvider({ children }) {
     signup,
     login,
     logout,
+    googleSignIn,
+    forgotPassword,
+    sendVerification,
+    setRememberMe,
     isStudent: userProfile?.role === 'student',
     isOwner: userProfile?.role === 'owner',
   };

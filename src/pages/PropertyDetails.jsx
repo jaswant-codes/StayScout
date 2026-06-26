@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, firebaseInitialized } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
@@ -24,10 +24,12 @@ import {
 
 export default function PropertyDetails() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user, userProfile, isStudent } = useAuth();
   const { reviews, loading: reviewsLoading, avgRating } = useReviews(id);
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showDemoAlert, setShowDemoAlert] = useState(false);
 
   // Review form
   const [rating, setRating] = useState(0);
@@ -39,12 +41,13 @@ export default function PropertyDetails() {
   useEffect(() => {
     async function fetchProperty() {
       try {
+        const demoProp = mockProperties.find(p => p.id === id);
+        if (demoProp) {
+          setProperty(demoProp);
+          return;
+        }
+
         if (!firebaseInitialized || !db) {
-          // Demo Mode fallback
-          const fakeProp = mockProperties.find(p => p.id === id);
-          if (fakeProp) {
-            setProperty(fakeProp);
-          }
           return;
         }
 
@@ -60,6 +63,21 @@ export default function PropertyDetails() {
     }
     fetchProperty();
   }, [id]);
+
+  const handleContactOwner = () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
+    if (mockProperties.some(p => p.id === id)) {
+      setShowDemoAlert(true);
+      setTimeout(() => setShowDemoAlert(false), 3000);
+      return;
+    }
+    
+    navigate('/chat', { state: { propertyId: id, ownerId: property.ownerId } });
+  };
 
   const handleSubmitReview = async (e) => {
     e.preventDefault();
@@ -379,6 +397,23 @@ export default function PropertyDetails() {
                     {property.availability === 'available' ? 'Available' : 'Full'}
                   </span>
                 </div>
+              </div>
+              
+              {/* Contact Button */}
+              <div className="mt-6">
+                <button 
+                  onClick={handleContactOwner}
+                  className="w-full btn-primary py-2.5 flex items-center justify-center gap-2"
+                >
+                  <Send size={16} />
+                  Contact Owner
+                </button>
+                {showDemoAlert && (
+                  <div className="mt-3 p-2 bg-warning/10 border border-warning/20 rounded-lg flex items-center gap-2 text-warning text-xs animate-fade-in">
+                    <XCircle size={14} />
+                    Demo owner cannot be contacted
+                  </div>
+                )}
               </div>
             </div>
           </div>

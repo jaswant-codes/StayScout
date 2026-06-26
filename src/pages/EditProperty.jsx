@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, firebaseInitialized } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
-import { updateProperty, uploadPropertyImages } from '../hooks/useProperties';
+import { updateProperty, uploadPropertyImages, mockProperties } from '../hooks/useProperties';
 import FacilityTag from '../components/FacilityTag';
 import Loader from '../components/Loader';
 import { FACILITIES_LIST } from '../utils/helpers';
@@ -33,6 +33,28 @@ export default function EditProperty() {
   useEffect(() => {
     async function fetchProperty() {
       try {
+        if (!firebaseInitialized || !db) {
+          // Demo mode fallback
+          const fakeProp = mockProperties.find(p => p.id === id);
+          if (fakeProp) {
+            if (fakeProp.ownerId !== user?.uid) {
+              navigate('/owner/dashboard');
+              return;
+            }
+            setForm({
+              name: fakeProp.name || '',
+              city: fakeProp.city || '',
+              area: fakeProp.area || '',
+              rent: fakeProp.rent?.toString() || '',
+              description: fakeProp.description || '',
+              availability: fakeProp.availability || 'available',
+            });
+            setFacilities(fakeProp.facilities || []);
+            setExistingImages(fakeProp.images || []);
+          }
+          return;
+        }
+
         const docSnap = await getDoc(doc(db, 'properties', id));
         if (docSnap.exists()) {
           const data = docSnap.data();

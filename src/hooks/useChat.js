@@ -9,12 +9,15 @@ import {
 } from 'firebase/firestore';
 import { db, firebaseInitialized } from '../lib/firebase';
 
+let mockMessages = [];
+
 export function useChat(messageLimit = 100) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!firebaseInitialized || !db) {
+      setMessages(mockMessages);
       setLoading(false);
       return;
     }
@@ -46,6 +49,21 @@ export function useChat(messageLimit = 100) {
 
   const sendMessage = async (userId, userName, message) => {
     if (!message.trim()) return;
+
+    if (!firebaseInitialized || !db) {
+      // Demo mode: add to local mock messages
+      const newMsg = {
+        id: `demo-msg-${Date.now()}`,
+        userId,
+        userName,
+        message: message.trim(),
+        createdAt: new Date().toISOString(),
+      };
+      mockMessages = [...mockMessages, newMsg];
+      setMessages([...mockMessages]);
+      return;
+    }
+
     await addDoc(collection(db, 'messages'), {
       userId,
       userName,

@@ -1,9 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function ImageGallery({ images = [] }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!lightboxOpen) return;
+      if (e.key === 'Escape') setLightboxOpen(false);
+      if (e.key === 'ArrowLeft') setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+      if (e.key === 'ArrowRight') setCurrentIndex((prev) => (prev + 1) % images.length);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxOpen, images.length]);
 
   if (images.length === 0) {
     return (
@@ -36,6 +47,7 @@ export default function ImageGallery({ images = [] }) {
             <img
               src={img}
               alt={`Property image ${i + 1}`}
+              loading="lazy"
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
               style={{ minHeight: i === 0 ? '320px' : '155px' }}
             />
@@ -74,6 +86,7 @@ export default function ImageGallery({ images = [] }) {
           <img
             src={images[currentIndex]}
             alt={`Property image ${currentIndex + 1}`}
+            loading="lazy"
             className="max-h-[85vh] max-w-[90vw] object-contain rounded-lg"
             onClick={(e) => e.stopPropagation()}
           />

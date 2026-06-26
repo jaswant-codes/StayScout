@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
@@ -16,6 +16,7 @@ let app;
 let auth;
 let db;
 let storage;
+let googleProvider;
 let firebaseInitialized = false;
 
 const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
@@ -28,11 +29,12 @@ try {
   auth = getAuth(app);
   db = getFirestore(app);
   storage = getStorage(app);
+  googleProvider = new GoogleAuthProvider();
   firebaseInitialized = true;
 } catch (error) {
   console.warn('Firebase initialization failed:', error.message);
   console.warn('The app will run in demo mode without backend connectivity.');
 }
 
-export { auth, db, storage, firebaseInitialized };
+export { auth, db, storage, googleProvider, firebaseInitialized };
 export default app;

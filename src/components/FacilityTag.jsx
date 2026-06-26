@@ -1,6 +1,7 @@
+import { memo } from 'react';
 import { FACILITY_ICONS } from '../utils/helpers';
 
-export default function FacilityTag({ facility, selected, onClick, small }) {
+const FacilityTag = memo(function FacilityTag({ facility, selected, onClick, small }) {
   const icon = FACILITY_ICONS[facility] || '✨';
 
   return (
@@ -22,4 +23,6 @@ export default function FacilityTag({ facility, selected, onClick, small }) {
       <span className="font-medium">{facility}</span>
     </button>
   );
-}
+});
+
+export default FacilityTag;

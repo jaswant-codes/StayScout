@@ -108,6 +108,7 @@ export default function OwnerDashboard() {
                   <img
                     src={property.images?.[0] || 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400&h=300&fit=crop'}
                     alt={property.name}
+                    loading="lazy"
                     className="w-full h-full object-cover"
                   />
                 </div>

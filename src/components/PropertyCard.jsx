@@ -13,7 +13,8 @@ export default function PropertyCard({ property }) {
         <div className="relative overflow-hidden" style={{ height: '200px' }}>
           <img
             src={thumbnail}
-            alt={property.name}
+            alt={`${property.name} - ${property.area}, ${property.city}`}
+            loading="lazy"
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-dark-900/60 to-transparent" />
