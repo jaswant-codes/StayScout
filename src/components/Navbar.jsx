@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from './notifications/NotificationBell';
 import {
   Home,
   MessageCircle,
@@ -12,6 +13,7 @@ import {
   Search,
   ChevronDown,
   Settings,
+  Calendar,
 } from 'lucide-react';
 
 export default function Navbar() {
@@ -121,13 +123,13 @@ export default function Navbar() {
             {isStudent && (
               <>
                 <Link
-                  to="/chat"
+                  to="/inbox"
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                    isActive('/chat')
+                    isActive('/inbox')
                       ? 'text-accent-400 bg-accent-500/10'
                       : 'text-text-secondary hover:text-text-primary hover:bg-dark-700'
                   }`}
-                  aria-current={isActive('/chat') ? 'page' : undefined}
+                  aria-current={isActive('/inbox') ? 'page' : undefined}
                 >
                   <MessageCircle size={16} />
                   Community
@@ -166,7 +168,9 @@ export default function Navbar() {
           {/* Desktop Auth */}
           <div className="hidden md:flex items-center gap-3">
             {user ? (
-              <div className="relative" ref={dropdownRef}>
+              <>
+                <NotificationBell />
+                <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-dark-700 border border-border hover:border-border-hover transition-all cursor-pointer"
@@ -211,16 +215,38 @@ export default function Navbar() {
                         <LayoutDashboard size={15} />
                         Dashboard
                       </Link>
-                      {isStudent && (
+                      {isOwner && (
                         <Link
-                          to="/chat"
+                          to="/owner/visits"
                           className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-dark-700 transition-all"
                           role="menuitem"
                           onClick={() => setDropdownOpen(false)}
                         >
-                          <MessageCircle size={15} />
-                          Community
+                          <Calendar size={15} />
+                          Tour Requests
                         </Link>
+                      )}
+                      {isStudent && (
+                        <>
+                          <Link
+                            to="/inbox"
+                            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-dark-700 transition-all"
+                            role="menuitem"
+                            onClick={() => setDropdownOpen(false)}
+                          >
+                            <MessageCircle size={15} />
+                            Community
+                          </Link>
+                          <Link
+                            to="/student/visits"
+                            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-dark-700 transition-all"
+                            role="menuitem"
+                            onClick={() => setDropdownOpen(false)}
+                          >
+                            <Calendar size={15} />
+                            My Visits
+                          </Link>
+                        </>
                       )}
                     </div>
                     <div className="border-t border-border py-1">
@@ -236,6 +262,7 @@ export default function Navbar() {
                   </div>
                 )}
               </div>
+              </>
             ) : (
               <div className="flex items-center gap-2">
                 <Link to="/login" className="btn-secondary text-sm">
@@ -323,10 +350,10 @@ export default function Navbar() {
             {isStudent && (
               <>
                 <Link
-                  to="/chat"
+                  to="/inbox"
                   onClick={closeMobile}
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                    isActive('/chat')
+                    isActive('/inbox')
                       ? 'text-accent-400 bg-accent-500/10'
                       : 'text-text-secondary hover:text-text-primary hover:bg-dark-700'
                   }`}
@@ -369,23 +396,26 @@ export default function Navbar() {
 
             <div className="border-t border-border pt-3 mt-3">
               {user ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 px-4">
-                    {userProfile?.photoURL ? (
-                      <img
-                        src={userProfile.photoURL}
-                        alt={userProfile?.name || 'User'}
-                        className="w-8 h-8 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-accent-500/20 flex items-center justify-center">
-                        <User size={14} className="text-accent-400" />
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-dark-700/50 rounded-xl border border-border">
+                    <div className="flex items-center gap-3">
+                      {userProfile?.photoURL ? (
+                        <img
+                          src={userProfile.photoURL}
+                          alt={userProfile?.name || 'User'}
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-accent-500/20 flex items-center justify-center">
+                          <User size={14} className="text-accent-400" />
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm font-medium text-text-primary">{userProfile?.name}</p>
+                        <p className="text-xs text-text-muted capitalize">{userProfile?.role}</p>
                       </div>
-                    )}
-                    <div>
-                      <p className="text-sm font-medium text-text-primary">{userProfile?.name}</p>
-                      <p className="text-xs text-text-muted capitalize">{userProfile?.role}</p>
                     </div>
+                    <NotificationBell />
                   </div>
                   <button
                     onClick={handleLogout}

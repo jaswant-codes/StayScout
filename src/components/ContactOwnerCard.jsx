@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Phone, Mail, MessageSquare, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Phone, Mail, MessageSquare, ShieldCheck, CheckCircle2, Calendar } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-export default function ContactOwnerCard({ ownerId, propertyName, isVerified = true }) {
+export default function ContactOwnerCard({ property, isVerified = true, onScheduleVisit }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showPhone, setShowPhone] = useState(false);
@@ -18,7 +18,7 @@ export default function ContactOwnerCard({ ownerId, propertyName, isVerified = t
     if (type === 'phone') {
       setShowPhone(true);
     } else if (type === 'message') {
-      navigate(`/chat?owner=${ownerId}`);
+      navigate(`/inbox?owner=${property.ownerId}`);
     }
   };
 
@@ -27,7 +27,7 @@ export default function ContactOwnerCard({ ownerId, propertyName, isVerified = t
       <div className="flex items-start gap-4 mb-6">
         <div className="w-16 h-16 rounded-full bg-dark-700 overflow-hidden shrink-0 border-2 border-dark-600">
           <img 
-            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${ownerId}`} 
+            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${property.ownerId}`} 
             alt="Owner Avatar" 
             className="w-full h-full object-cover"
           />
@@ -67,6 +67,14 @@ export default function ContactOwnerCard({ ownerId, propertyName, isVerified = t
         >
           <MessageSquare size={18} />
           Send a Message
+        </button>
+
+        <button 
+          onClick={onScheduleVisit}
+          className="w-full btn-outline py-3.5 flex items-center justify-center gap-2 font-bold bg-dark-800 text-white border-border hover:bg-dark-700"
+        >
+          <Calendar size={18} />
+          Schedule a Visit
         </button>
       </div>
       

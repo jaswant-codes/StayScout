@@ -18,7 +18,9 @@ const OwnerCRM = lazy(() => import('./pages/OwnerCRM'));
 const OwnerTrustCenter = lazy(() => import('./pages/OwnerTrustCenter'));
 const AddProperty = lazy(() => import('./pages/AddProperty'));
 const PropertyManager = lazy(() => import('./pages/PropertyManager'));
-const Chat = lazy(() => import('./pages/Chat'));
+const StudentVisits = lazy(() => import('./pages/StudentVisits'));
+const OwnerVisits = lazy(() => import('./pages/OwnerVisits'));
+const Inbox = lazy(() => import('./pages/Inbox'));
 const Search = lazy(() => import('./pages/Search'));
 const AdminLayout = lazy(() => import('./components/admin/AdminLayout'));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
@@ -54,10 +56,18 @@ export default function App() {
                   }
                 />
                 <Route
-                  path="/chat"
+                  path="/student/visits"
                   element={
                     <ProtectedRoute role="student">
-                      <Chat />
+                      <StudentVisits />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/inbox"
+                  element={
+                    <ProtectedRoute>
+                      <Inbox />
                     </ProtectedRoute>
                   }
                 />
@@ -100,6 +110,14 @@ export default function App() {
                   element={
                     <ProtectedRoute role="owner">
                       <PropertyManager />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/owner/visits"
+                  element={
+                    <ProtectedRoute role="owner">
+                      <OwnerVisits />
                     </ProtectedRoute>
                   }
                 />

@@ -57,7 +57,7 @@ export default function StudentDashboard() {
           </span>
         </Link>
 
-        <Link to="/chat" className="glass-strong rounded-2xl p-6 group hover:-translate-y-1 hover:shadow-xl transition-all h-full flex flex-col">
+        <Link to="/inbox" className="glass-strong rounded-2xl p-6 group hover:-translate-y-1 hover:shadow-xl transition-all h-full flex flex-col">
           <div className="w-12 h-12 rounded-xl bg-success/15 flex items-center justify-center mb-4 group-hover:bg-success/25 transition-colors">
             <MessageCircle size={24} className="text-success" />
           </div>

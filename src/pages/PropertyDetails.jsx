@@ -4,6 +4,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db, firebaseInitialized } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useReviews } from '../hooks/useReviews';
+import { useVisits } from '../hooks/useVisits';
 import { mockProperties } from '../hooks/useProperties';
 import { formatCurrency } from '../utils/helpers';
 import { useAnalytics } from '../hooks/useAnalytics';
@@ -24,6 +25,7 @@ import OwnerProfile from '../components/OwnerProfile';
 import SimilarProperties from '../components/SimilarProperties';
 import RecentlyViewedProperties from '../components/RecentlyViewedProperties';
 import ContactOwnerCard from '../components/ContactOwnerCard';
+import VisitSchedulerModal from '../components/booking/VisitSchedulerModal';
 
 import Loader from '../components/Loader';
 import EmptyState from '../components/EmptyState';
@@ -43,6 +45,8 @@ export default function PropertyDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showDemoAlert, setShowDemoAlert] = useState(false);
+  const [showVisitModal, setShowVisitModal] = useState(false);
+  const { requestVisit } = useVisits();
 
   useEffect(() => {
     async function fetchProperty() {
@@ -99,7 +103,25 @@ export default function PropertyDetails() {
       return;
     }
     
-    navigate('/chat', { state: { propertyId: id, ownerId: property.ownerId } });
+    navigate('/inbox', { state: { propertyId: id, ownerId: property.ownerId } });
+  };
+
+  const handleScheduleVisit = () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    setShowVisitModal(true);
+  };
+
+  const handleVisitSubmit = async (visitData) => {
+    try {
+      await requestVisit(visitData);
+      setShowVisitModal(false);
+      navigate('/student/visits');
+    } catch (err) {
+      console.error("Failed to request visit", err);
+    }
   };
 
   if (loading) {
@@ -243,6 +265,7 @@ export default function PropertyDetails() {
             <ContactOwnerCard 
               property={property} 
               onContact={handleContactOwner} 
+              onScheduleVisit={handleScheduleVisit}
             />
 
             {/* About Owner Snippet */}
@@ -310,6 +333,13 @@ export default function PropertyDetails() {
           </button>
         </div>
       </div>
+
+      <VisitSchedulerModal 
+        isOpen={showVisitModal}
+        onClose={() => setShowVisitModal(false)}
+        property={property}
+        onSubmit={handleVisitSubmit}
+      />
     </div>
   );
 }
