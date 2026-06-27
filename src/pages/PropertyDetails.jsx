@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, firebaseInitialized } from '../lib/firebase';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { useReviews } from '../hooks/useReviews';
 import { useVisits } from '../hooks/useVisits';
 import { mockProperties } from '../hooks/useProperties';

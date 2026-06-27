@@ -1,23 +1,23 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import NotificationBell from './notifications/NotificationBell';
 import {
   Home,
   MessageCircle,
-  LayoutDashboard,
   LogOut,
   Menu,
   X,
-  User,
   Search,
   ChevronDown,
   Settings,
   Calendar,
+  Heart,
+  User as UserIcon,
 } from 'lucide-react';
 
 export default function Navbar() {
-  const { user, userProfile, logout, isStudent, isOwner } = useAuth();
+  const { currentUser, isAuthenticated, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -52,7 +52,16 @@ export default function Navbar() {
 
   const isActive = (path) => location.pathname === path;
 
-  const dashboardPath = isOwner ? '/owner/dashboard' : '/student/dashboard';
+  // Generate avatar initial
+  const getAvatarInitial = () => {
+    if (currentUser?.displayName) {
+      return currentUser.displayName.charAt(0).toUpperCase();
+    }
+    if (currentUser?.email) {
+      return currentUser.email.charAt(0).toUpperCase();
+    }
+    return '?';
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-40 glass border-b-0" role="navigation" aria-label="Main navigation">
@@ -70,7 +79,7 @@ export default function Navbar() {
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-1">
-            {!user && (
+            {!isAuthenticated && (
               <>
                 <a
                   href="/#properties-section"
@@ -105,7 +114,7 @@ export default function Navbar() {
               </>
             )}
 
-            {user && (
+            {isAuthenticated && (
               <Link
                 to="/"
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
@@ -119,55 +128,11 @@ export default function Navbar() {
                 Explore
               </Link>
             )}
-
-            {isStudent && (
-              <>
-                <Link
-                  to="/inbox"
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                    isActive('/inbox')
-                      ? 'text-accent-400 bg-accent-500/10'
-                      : 'text-text-secondary hover:text-text-primary hover:bg-dark-700'
-                  }`}
-                  aria-current={isActive('/inbox') ? 'page' : undefined}
-                >
-                  <MessageCircle size={16} />
-                  Community
-                </Link>
-                <Link
-                  to="/student/dashboard"
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                    isActive('/student/dashboard')
-                      ? 'text-accent-400 bg-accent-500/10'
-                      : 'text-text-secondary hover:text-text-primary hover:bg-dark-700'
-                  }`}
-                  aria-current={isActive('/student/dashboard') ? 'page' : undefined}
-                >
-                  <LayoutDashboard size={16} />
-                  Dashboard
-                </Link>
-              </>
-            )}
-
-            {isOwner && (
-              <Link
-                to="/owner/dashboard"
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                  isActive('/owner/dashboard')
-                    ? 'text-accent-400 bg-accent-500/10'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-dark-700'
-                }`}
-                aria-current={isActive('/owner/dashboard') ? 'page' : undefined}
-              >
-                <LayoutDashboard size={16} />
-                Dashboard
-              </Link>
-            )}
           </div>
 
           {/* Desktop Auth */}
           <div className="hidden md:flex items-center gap-3">
-            {user ? (
+            {isAuthenticated ? (
               <>
                 <NotificationBell />
                 <div className="relative" ref={dropdownRef}>
@@ -178,19 +143,19 @@ export default function Navbar() {
                   aria-haspopup="true"
                   aria-label="User menu"
                 >
-                  {userProfile?.photoURL ? (
+                  {currentUser?.photoURL ? (
                     <img
-                      src={userProfile.photoURL}
-                      alt={userProfile?.name || 'User'}
+                      src={currentUser.photoURL}
+                      alt={currentUser?.displayName || 'User'}
                       className="w-6 h-6 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="w-6 h-6 rounded-full bg-accent-500/20 flex items-center justify-center">
-                      <User size={12} className="text-accent-400" />
+                    <div className="w-6 h-6 rounded-full bg-accent-500 text-white flex items-center justify-center font-bold text-xs">
+                      {getAvatarInitial()}
                     </div>
                   )}
                   <span className="text-sm font-medium text-text-primary max-w-[120px] truncate">
-                    {userProfile?.name}
+                    {currentUser?.displayName || currentUser?.email?.split('@')[0]}
                   </span>
                   <ChevronDown size={14} className={`text-text-muted transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
@@ -199,55 +164,57 @@ export default function Navbar() {
                 {dropdownOpen && (
                   <div className="absolute right-0 mt-2 w-56 rounded-xl glass-strong shadow-2xl border border-border overflow-hidden animate-fade-in" role="menu">
                     <div className="px-4 py-3 border-b border-border">
-                      <p className="text-sm font-medium text-text-primary truncate">{userProfile?.name}</p>
-                      <p className="text-xs text-text-muted truncate">{user?.email || userProfile?.email}</p>
-                      <span className="inline-block text-xs text-text-muted capitalize bg-dark-600 px-2 py-0.5 rounded-full mt-1.5">
-                        {userProfile?.role}
-                      </span>
+                      <p className="text-sm font-medium text-text-primary truncate">
+                        {currentUser?.displayName || 'User'}
+                      </p>
+                      <p className="text-xs text-text-muted truncate">{currentUser?.email}</p>
                     </div>
                     <div className="py-1">
                       <Link
-                        to={dashboardPath}
+                        to="/profile"
                         className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-dark-700 transition-all"
                         role="menuitem"
                         onClick={() => setDropdownOpen(false)}
                       >
-                        <LayoutDashboard size={15} />
-                        Dashboard
+                        <UserIcon size={15} />
+                        My Profile
                       </Link>
-                      {isOwner && (
-                        <Link
-                          to="/owner/visits"
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-dark-700 transition-all"
-                          role="menuitem"
-                          onClick={() => setDropdownOpen(false)}
-                        >
-                          <Calendar size={15} />
-                          Tour Requests
-                        </Link>
-                      )}
-                      {isStudent && (
-                        <>
-                          <Link
-                            to="/inbox"
-                            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-dark-700 transition-all"
-                            role="menuitem"
-                            onClick={() => setDropdownOpen(false)}
-                          >
-                            <MessageCircle size={15} />
-                            Community
-                          </Link>
-                          <Link
-                            to="/student/visits"
-                            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-dark-700 transition-all"
-                            role="menuitem"
-                            onClick={() => setDropdownOpen(false)}
-                          >
-                            <Calendar size={15} />
-                            My Visits
-                          </Link>
-                        </>
-                      )}
+                      <Link
+                        to="/saved-properties"
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-dark-700 transition-all"
+                        role="menuitem"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <Heart size={15} />
+                        Saved Properties
+                      </Link>
+                      <Link
+                        to="/visits"
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-dark-700 transition-all"
+                        role="menuitem"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <Calendar size={15} />
+                        My Visits
+                      </Link>
+                      <Link
+                        to="/inbox"
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-dark-700 transition-all"
+                        role="menuitem"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <MessageCircle size={15} />
+                        Messages
+                      </Link>
+                      <Link
+                        to="/settings"
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-dark-700 transition-all"
+                        role="menuitem"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <Settings size={15} />
+                        Settings
+                      </Link>
                     </div>
                     <div className="border-t border-border py-1">
                       <button
@@ -291,7 +258,7 @@ export default function Navbar() {
       {mobileOpen && (
         <div className="md:hidden border-t border-border bg-dark-800 animate-fade-in" role="menu">
           <div className="px-4 py-4 space-y-1">
-            {!user && (
+            {!isAuthenticated && (
               <>
                 <a
                   href="/#properties-section"
@@ -331,7 +298,7 @@ export default function Navbar() {
               </>
             )}
 
-            {user && (
+            {isAuthenticated && (
               <Link
                 to="/"
                 onClick={closeMobile}
@@ -347,72 +314,27 @@ export default function Navbar() {
               </Link>
             )}
 
-            {isStudent && (
-              <>
-                <Link
-                  to="/inbox"
-                  onClick={closeMobile}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                    isActive('/inbox')
-                      ? 'text-accent-400 bg-accent-500/10'
-                      : 'text-text-secondary hover:text-text-primary hover:bg-dark-700'
-                  }`}
-                  role="menuitem"
-                >
-                  <MessageCircle size={18} />
-                  Community
-                </Link>
-                <Link
-                  to="/student/dashboard"
-                  onClick={closeMobile}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                    isActive('/student/dashboard')
-                      ? 'text-accent-400 bg-accent-500/10'
-                      : 'text-text-secondary hover:text-text-primary hover:bg-dark-700'
-                  }`}
-                  role="menuitem"
-                >
-                  <LayoutDashboard size={18} />
-                  Dashboard
-                </Link>
-              </>
-            )}
-
-            {isOwner && (
-              <Link
-                to="/owner/dashboard"
-                onClick={closeMobile}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                  isActive('/owner/dashboard')
-                    ? 'text-accent-400 bg-accent-500/10'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-dark-700'
-                }`}
-                role="menuitem"
-              >
-                <LayoutDashboard size={18} />
-                Dashboard
-              </Link>
-            )}
-
             <div className="border-t border-border pt-3 mt-3">
-              {user ? (
+              {isAuthenticated ? (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-4 bg-dark-700/50 rounded-xl border border-border">
                     <div className="flex items-center gap-3">
-                      {userProfile?.photoURL ? (
+                      {currentUser?.photoURL ? (
                         <img
-                          src={userProfile.photoURL}
-                          alt={userProfile?.name || 'User'}
+                          src={currentUser.photoURL}
+                          alt={currentUser?.displayName || 'User'}
                           className="w-8 h-8 rounded-full object-cover"
                         />
                       ) : (
-                        <div className="w-8 h-8 rounded-full bg-accent-500/20 flex items-center justify-center">
-                          <User size={14} className="text-accent-400" />
+                        <div className="w-8 h-8 rounded-full bg-accent-500 text-white flex items-center justify-center font-bold text-xs">
+                          {getAvatarInitial()}
                         </div>
                       )}
                       <div>
-                        <p className="text-sm font-medium text-text-primary">{userProfile?.name}</p>
-                        <p className="text-xs text-text-muted capitalize">{userProfile?.role}</p>
+                        <p className="text-sm font-medium text-text-primary">
+                          {currentUser?.displayName || currentUser?.email?.split('@')[0]}
+                        </p>
+                        <p className="text-xs text-text-muted">{currentUser?.email}</p>
                       </div>
                     </div>
                     <NotificationBell />

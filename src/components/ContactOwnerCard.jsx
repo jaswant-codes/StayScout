@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Phone, Mail, MessageSquare, ShieldCheck, CheckCircle2, Calendar } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
 export default function ContactOwnerCard({ property, isVerified = true, onScheduleVisit }) {

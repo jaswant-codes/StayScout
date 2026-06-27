@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import {
   UserPlus,
   Mail,
@@ -36,12 +36,35 @@ export default function Signup() {
   const [role, setRole] = useState('student');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [verificationSent, setVerificationSent] = useState(false);
-  const { signup, googleSignIn, sendVerification } = useAuth();
+  const [loadingLocal, setLoadingLocal] = useState(false);
+  const [success, setSuccess] = useState(false);
+  
+  const { signUp, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const strength = getPasswordStrength(password);
+
+  const getFriendlyErrorMessage = (err) => {
+    const code = err.code || '';
+    const message = err.message || '';
+
+    if (code.includes('api-key') || message.includes('api-key')) {
+      return 'Firebase is not configured. Please add your real Firebase API key to the .env file.';
+    }
+
+    switch (code) {
+      case 'auth/email-already-in-use':
+        return 'An account already exists with this email.';
+      case 'auth/invalid-email':
+        return 'Please enter a valid email.';
+      case 'auth/weak-password':
+        return 'Password must be at least 6 characters.';
+      case 'auth/network-request-failed':
+        return 'Network connection lost.';
+      default:
+        return 'Signup failed. Please try again.';
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -52,64 +75,37 @@ export default function Signup() {
       return;
     }
 
-    setLoading(true);
+    setLoadingLocal(true);
 
     try {
-      await signup(name, email, password, role);
-
-      // Attempt to send verification email
-      try {
-        await sendVerification();
-        setVerificationSent(true);
-      } catch (verifyErr) {
-        console.warn('Could not send verification email:', verifyErr);
-      }
-
-      // Short delay to show verification notice, then navigate
+      // Create user and automatically log them in
+      await signUp(name, email, password);
+      
+      setSuccess(true);
+      
+      // Short delay to show success notice, then navigate
       setTimeout(() => {
-        if (role === 'student') {
-          navigate('/student/dashboard');
-        } else {
-          navigate('/owner/dashboard');
-        }
-      }, verificationSent ? 2000 : 0);
+        navigate('/', { replace: true });
+      }, 1500);
     } catch (err) {
       console.error('Signup error:', err);
-      const messages = {
-        'auth/email-already-in-use': 'An account with this email already exists.',
-        'auth/invalid-email': 'Please enter a valid email.',
-        'auth/weak-password': 'Password is too weak. Use at least 6 characters.',
-        'auth/network-request-failed': 'Network error. Please check your internet connection.',
-        'auth/configuration-error': 'Firebase is not configured. Please add your Firebase credentials to the .env file.',
-        'auth/invalid-api-key': 'Firebase API key is invalid. Please check your .env file.',
-      };
-      let errorMessage = messages[err.code] || err.message || 'Signup failed. Please try again.';
-      if (err.code?.includes('api-key') || err.message?.includes('api-key')) {
-        errorMessage = 'Firebase is not configured. Please add your real Firebase API key to the .env file.';
-      }
-      setError(errorMessage);
+      setError(getFriendlyErrorMessage(err));
     } finally {
-      setLoading(false);
+      setLoadingLocal(false);
     }
   };
 
   const handleGoogleSignUp = async () => {
     setError('');
-    setLoading(true);
+    setLoadingLocal(true);
     try {
-      const { user, profile } = await googleSignIn(role);
-      if (profile?.role === 'owner') {
-        navigate('/owner/dashboard');
-      } else if (profile?.role === 'student') {
-        navigate('/student/dashboard');
-      } else {
-        navigate('/');
-      }
+      await signInWithGoogle();
+      navigate('/', { replace: true });
     } catch (err) {
       console.error('Google sign-up error:', err);
-      setError(err.message || 'Google sign-up failed. Please try again.');
+      setError(getFriendlyErrorMessage(err));
     } finally {
-      setLoading(false);
+      setLoadingLocal(false);
     }
   };
 
@@ -139,15 +135,15 @@ export default function Signup() {
             </div>
           )}
 
-          {verificationSent && (
+          {success && (
             <div className="flex items-start gap-2 p-3 rounded-lg bg-success/10 border border-success/20 text-success text-sm mb-5 animate-fade-in">
               <CheckCircle size={16} className="mt-0.5 flex-shrink-0" />
-              <span>Account created! A verification email has been sent. Please check your inbox.</span>
+              <span>Account created successfully! Redirecting...</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Role Selection */}
+            {/* Role Selection (Kept for UI consistency, but unused in backend for now) */}
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-2">
                 I am a
@@ -257,10 +253,10 @@ export default function Signup() {
             <button
               id="signup-submit"
               type="submit"
-              disabled={loading}
+              disabled={loadingLocal}
               className="btn-primary w-full justify-center py-3.5 text-base shadow-lg shadow-accent-500/30 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
             >
-              {loading ? (
+              {loadingLocal ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 'Create account'
@@ -279,7 +275,7 @@ export default function Signup() {
           <button
             type="button"
             onClick={handleGoogleSignUp}
-            disabled={loading}
+            disabled={loadingLocal}
             className="btn-secondary w-full justify-center py-3 text-sm"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">

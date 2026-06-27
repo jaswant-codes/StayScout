@@ -1,76 +1,76 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import { LogIn, Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { login, googleSignIn, setRememberMe: setAuthRememberMe } = useAuth();
+  const [loadingLocal, setLoadingLocal] = useState(false);
+  
+  const { signIn, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Redirect to previous page or home
+  const from = location.state?.from?.pathname || '/';
+
+  const getFriendlyErrorMessage = (err) => {
+    const code = err.code || '';
+    const message = err.message || '';
+
+    if (code.includes('api-key') || message.includes('api-key')) {
+      return 'Firebase is not configured. Please add your real Firebase API key to the .env file.';
+    }
+
+    switch (code) {
+      case 'auth/user-not-found':
+      case 'auth/invalid-credential':
+        return 'No account exists with this email or incorrect password.';
+      case 'auth/wrong-password':
+        return 'Incorrect password.';
+      case 'auth/invalid-email':
+        return 'Please enter a valid email.';
+      case 'auth/too-many-requests':
+        return 'Too many failed attempts. Try again later.';
+      case 'auth/network-request-failed':
+        return 'Network connection lost.';
+      default:
+        return 'Login failed. Please try again.';
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
+    setLoadingLocal(true);
 
     try {
-      await setAuthRememberMe(rememberMe);
-      const { user, profile } = await login(email, password);
-
-      // Redirect based on role
-      if (profile?.role === 'admin') {
-        navigate('/admin/dashboard');
-      } else if (profile?.role === 'owner') {
-        navigate('/owner/dashboard');
-      } else if (profile?.role === 'student') {
-        navigate('/student/dashboard');
-      } else {
-        navigate('/');
-      }
+      await signIn(email, password);
+      // Let AuthContext's onAuthStateChanged handle the session
+      navigate(from, { replace: true });
     } catch (err) {
       console.error('Login error:', err);
-      const messages = {
-        'auth/user-not-found': 'No account found with this email.',
-        'auth/wrong-password': 'Incorrect password.',
-        'auth/invalid-credential': 'Invalid email or password.',
-        'auth/invalid-email': 'Please enter a valid email.',
-        'auth/too-many-requests': 'Too many failed attempts. Try again later.',
-        'auth/network-request-failed': 'Network error. Please check your internet connection.',
-        'auth/configuration-error': 'Firebase is not configured. Please add your Firebase credentials to the .env file.',
-        'auth/invalid-api-key': 'Firebase API key is invalid. Please check your .env file.',
-      };
-      let errorMessage = messages[err.code] || err.message || 'Login failed. Please try again.';
-      if (err.code?.includes('api-key') || err.message?.includes('api-key')) {
-        errorMessage = 'Firebase is not configured. Please add your real Firebase API key to the .env file.';
-      }
-      setError(errorMessage);
+      setError(getFriendlyErrorMessage(err));
     } finally {
-      setLoading(false);
+      setLoadingLocal(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
     setError('');
-    setLoading(true);
+    setLoadingLocal(true);
     try {
-      const { user, profile } = await googleSignIn();
-      if (profile?.role === 'owner') {
-        navigate('/owner/dashboard');
-      } else if (profile?.role === 'student') {
-        navigate('/student/dashboard');
-      } else {
-        navigate('/');
-      }
+      await signInWithGoogle();
+      navigate(from, { replace: true });
     } catch (err) {
       console.error('Google sign-in error:', err);
-      setError(err.message || 'Google sign-in failed. Please try again.');
+      setError(getFriendlyErrorMessage(err));
     } finally {
-      setLoading(false);
+      setLoadingLocal(false);
     }
   };
 
@@ -163,10 +163,10 @@ export default function Login() {
             <button
               id="login-submit"
               type="submit"
-              disabled={loading}
+              disabled={loadingLocal}
               className="btn-primary w-full justify-center py-3.5 text-base shadow-lg shadow-accent-500/30 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
             >
-              {loading ? (
+              {loadingLocal ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 'Sign in'
@@ -185,7 +185,7 @@ export default function Login() {
           <button
             type="button"
             onClick={handleGoogleSignIn}
-            disabled={loading}
+            disabled={loadingLocal}
             className="btn-secondary w-full justify-center py-3 text-sm"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">

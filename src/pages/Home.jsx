@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { useProperties, useFeaturedProperties } from '../hooks/useProperties';
 import { useDebounce } from '../hooks/useDebounce';
 import PropertyCard from '../components/PropertyCard';

@@ -4,7 +4,6 @@ import { AuthProvider } from './context/AuthContext';
 import { AnalyticsProvider } from './hooks/useAnalytics';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
-import Loader from './components/Loader';
 
 // Lazy loaded pages
 const Home = lazy(() => import('./pages/Home'));
@@ -30,12 +29,27 @@ const AdminVerification = lazy(() => import('./pages/admin/AdminVerification'));
 const AdminSupport = lazy(() => import('./pages/admin/AdminSupport'));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
 const AdminReports = lazy(() => import('./pages/admin/AdminReports'));
+
+function FullScreenLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-dark-900">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent-500 to-accent-600 flex items-center justify-center shadow-lg shadow-accent-500/25 animate-pulse-glow">
+          <span className="text-xl font-bold text-white tracking-tighter">SS</span>
+        </div>
+        <div className="w-6 h-6 border-2 border-accent-500/30 border-t-accent-500 rounded-full animate-spin" />
+        <p className="text-sm font-medium text-text-secondary">Loading StayScout...</p>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <AnalyticsProvider>
         <AuthProvider>
-          <Suspense fallback={<Loader text="Loading..." />}>
+          <Suspense fallback={<FullScreenLoader />}>
             <Routes>
               <Route element={<Layout />}>
                 {/* Public routes */}
@@ -46,11 +60,11 @@ export default function App() {
                 <Route path="/property/:id" element={<PropertyDetails />} />
                 <Route path="/search" element={<Search />} />
 
-                {/* Student routes */}
+                {/* Protected routes */}
                 <Route
                   path="/student/dashboard"
                   element={
-                    <ProtectedRoute role="student">
+                    <ProtectedRoute>
                       <StudentDashboard />
                     </ProtectedRoute>
                   }
@@ -58,7 +72,7 @@ export default function App() {
                 <Route
                   path="/student/visits"
                   element={
-                    <ProtectedRoute role="student">
+                    <ProtectedRoute>
                       <StudentVisits />
                     </ProtectedRoute>
                   }
@@ -72,11 +86,10 @@ export default function App() {
                   }
                 />
 
-                {/* Owner routes */}
                 <Route
                   path="/owner/dashboard"
                   element={
-                    <ProtectedRoute role="owner">
+                    <ProtectedRoute>
                       <OwnerDashboard />
                     </ProtectedRoute>
                   }
@@ -84,7 +97,7 @@ export default function App() {
                 <Route
                   path="/owner/crm"
                   element={
-                    <ProtectedRoute role="owner">
+                    <ProtectedRoute>
                       <OwnerCRM />
                     </ProtectedRoute>
                   }
@@ -92,7 +105,7 @@ export default function App() {
                 <Route
                   path="/owner/trust-center"
                   element={
-                    <ProtectedRoute role="owner">
+                    <ProtectedRoute>
                       <OwnerTrustCenter />
                     </ProtectedRoute>
                   }
@@ -100,7 +113,7 @@ export default function App() {
                 <Route
                   path="/owner/add-property"
                   element={
-                    <ProtectedRoute role="owner">
+                    <ProtectedRoute>
                       <AddProperty />
                     </ProtectedRoute>
                   }
@@ -108,7 +121,7 @@ export default function App() {
                 <Route
                   path="/owner/edit-property/:id"
                   element={
-                    <ProtectedRoute role="owner">
+                    <ProtectedRoute>
                       <PropertyManager />
                     </ProtectedRoute>
                   }
@@ -116,30 +129,30 @@ export default function App() {
                 <Route
                   path="/owner/visits"
                   element={
-                    <ProtectedRoute role="owner">
+                    <ProtectedRoute>
                       <OwnerVisits />
                     </ProtectedRoute>
                   }
                 />
               </Route>
 
-                {/* Admin routes */}
-                <Route
-                  path="/admin"
-                  element={
-                    <ProtectedRoute role="admin">
-                      <AdminLayout />
-                    </ProtectedRoute>
-                  }
-                >
-                  <Route path="dashboard" element={<AdminDashboard />} />
-                  <Route path="users" element={<AdminUsers />} />
-                  <Route path="listings" element={<AdminListings />} />
-                  <Route path="verify" element={<AdminVerification />} />
-                  <Route path="reports" element={<AdminReports />} />
-                  <Route path="support" element={<AdminSupport />} />
-                  <Route path="settings" element={<AdminSettings />} />
-                </Route>
+              {/* Admin routes */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <AdminLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="users" element={<AdminUsers />} />
+                <Route path="listings" element={<AdminListings />} />
+                <Route path="verify" element={<AdminVerification />} />
+                <Route path="reports" element={<AdminReports />} />
+                <Route path="support" element={<AdminSupport />} />
+                <Route path="settings" element={<AdminSettings />} />
+              </Route>
             </Routes>
           </Suspense>
         </AuthProvider>

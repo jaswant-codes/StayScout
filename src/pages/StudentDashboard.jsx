@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { getUserReviews } from '../hooks/useReviews';
 import ReviewCard from '../components/ReviewCard';
 import Loader from '../components/Loader';

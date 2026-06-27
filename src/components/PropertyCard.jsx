@@ -4,7 +4,7 @@ import { MapPin, ShieldCheck, Heart, Share2, Bed, CheckCircle2, Zap, Clock, Maxi
 import StarRating from './StarRating';
 import { formatCurrency, truncateText } from '../utils/helpers';
 import { useWishlist } from '../hooks/useWishlist';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { useAnalytics } from '../hooks/useAnalytics';
 
 export default function PropertyCard({ property }) {

@@ -3,7 +3,7 @@ import { ArrowLeft, MoreVertical, Phone } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import ChatInput from './ChatInput';
 import Loader from '../Loader';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function ChatArea({ conversation, messages, loading, onSendMessage, onBack }) {
   const { user } = useAuth();

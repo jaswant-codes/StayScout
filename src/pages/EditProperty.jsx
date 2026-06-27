@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, firebaseInitialized } from '../lib/firebase';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { updateProperty, uploadPropertyImages, mockProperties } from '../hooks/useProperties';
 import FacilityTag from '../components/FacilityTag';
 import Loader from '../components/Loader';

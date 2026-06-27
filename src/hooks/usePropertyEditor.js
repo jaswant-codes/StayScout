@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { db, firebaseInitialized } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { mockProperties } from '../hooks/useProperties';

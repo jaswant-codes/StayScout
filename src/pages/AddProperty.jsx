@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { useWizard } from '../hooks/useWizard';
 import { useDraft } from '../hooks/useDraft';
 import { addProperty, uploadPropertyImages } from '../hooks/useProperties';
