@@ -10,7 +10,7 @@ import {
   updateProfile,
   sendEmailVerification,
   sendPasswordResetEmail
-} from "firebase/auth";
+} from 'firebase/auth';
 import { auth, googleProvider } from '../lib/firebase';
 
 export const AuthContext = createContext(null);
@@ -23,8 +23,18 @@ export function AuthProvider({ children }) {
     // Set persistence
     setPersistence(auth, browserLocalPersistence).catch(console.error);
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        if (user.emailVerified || user.providerData.some(p => p.providerId === 'google.com')) {
+          setCurrentUser(user);
+        } else {
+          // Immediately sign out unverified users that somehow slipped into a session
+          await firebaseSignOut(auth);
+          setCurrentUser(null);
+        }
+      } else {
+        setCurrentUser(null);
+      }
       setLoading(false);
     });
 
@@ -40,28 +50,36 @@ export function AuthProvider({ children }) {
         photoURL: '', // Empty for email users as requested
       });
       await sendEmailVerification(userCredential.user);
-      // Force refresh of the user object to reflect the new displayName
-      setCurrentUser({ ...userCredential.user });
+      await firebaseSignOut(auth); // Sign them out immediately
     }
     return userCredential.user;
   };
 
-const signIn = async (email, password) => {
-  const userCredential = await signInWithEmailAndPassword(auth, email, password);
+  const signIn = async (email, password) => {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    
+    // Refresh user data from Firebase to get latest emailVerified status
+    await userCredential.user.reload();
+    
+    if (!userCredential.user.emailVerified && !userCredential.user.providerData.some(p => p.providerId === 'google.com')) {
+      await firebaseSignOut(auth);
+      const error = new Error('Please verify your email before logging in.');
+      error.code = 'auth/unverified-email';
+      throw error;
+    }
+    return userCredential.user;
+  };
 
-  if (!userCredential.user.emailVerified) {
-    await firebaseSignOut(auth);
-    throw new Error(
-      "Please verify your email before logging in. Check your inbox."
-    );
-  }
-
-  return userCredential.user;
-};
   const forgotPassword = async (email) => {
-  return await sendPasswordResetEmail(auth, email);
-};
+    return await sendPasswordResetEmail(auth, email);
+  };
 
+  const resendVerification = async (email, password) => {
+    // Need to sign in briefly to send the verification email, then sign back out
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    await sendEmailVerification(userCredential.user);
+    await firebaseSignOut(auth);
+  };
 
   const signInWithGoogle = async () => {
     try {
@@ -97,6 +115,7 @@ const signIn = async (email, password) => {
     forgotPassword,
     signInWithGoogle,
     logout,
+    resendVerification,
   };
 
   return (

@@ -78,14 +78,14 @@ export default function Signup() {
     setLoadingLocal(true);
 
     try {
-      // Create user and automatically log them in
+      // Create user (which now also sends verification email and logs them out)
       await signUp(name, email, password);
       
       setSuccess(true);
       
-      // Short delay to show success notice, then navigate
+      // Short delay to show success notice, then navigate to verify email
       setTimeout(() => {
-        navigate('/', { replace: true });
+        navigate('/verify-email', { replace: true, state: { email, password } });
       }, 1500);
     } catch (err) {
       console.error('Signup error:', err);
@@ -138,7 +138,7 @@ export default function Signup() {
           {success && (
             <div className="flex items-start gap-2 p-3 rounded-lg bg-success/10 border border-success/20 text-success text-sm mb-5 animate-fade-in">
               <CheckCircle size={16} className="mt-0.5 flex-shrink-0" />
-              <span>Account created successfully! Redirecting...</span>
+              <span>Account created! Redirecting to verification...</span>
             </div>
           )}
 

@@ -36,6 +36,8 @@ export default function Login() {
         return 'Please enter a valid email.';
       case 'auth/too-many-requests':
         return 'Too many failed attempts. Try again later.';
+      case 'auth/unverified-email':
+        return 'Please verify your email before logging in. Check your Inbox or Spam folder.';
       case 'auth/network-request-failed':
         return 'Network connection lost.';
       default:

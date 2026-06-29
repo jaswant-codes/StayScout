@@ -19,7 +19,9 @@ export default function ProtectedRoute({ children }) {
     );
   }
 
-  if (!isAuthenticated) {
+  const isVerified = currentUser?.emailVerified || currentUser?.providerData?.some(p => p.providerId === 'google.com');
+
+  if (!isAuthenticated || (currentUser && !isVerified)) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
