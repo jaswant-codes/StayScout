@@ -45,10 +45,18 @@ export function AuthProvider({ children }) {
     return userCredential.user;
   };
 
-  const signIn = async (email, password) => {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    return userCredential.user;
-  };
+const signIn = async (email, password) => {
+  const userCredential = await signInWithEmailAndPassword(auth, email, password);
+
+  if (!userCredential.user.emailVerified) {
+    await firebaseSignOut(auth);
+    throw new Error(
+      "Please verify your email before logging in. Check your inbox."
+    );
+  }
+
+  return userCredential.user;
+};
 
   const signInWithGoogle = async () => {
     try {
