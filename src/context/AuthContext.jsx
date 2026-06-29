@@ -8,7 +8,8 @@ import {
   setPersistence,
   browserLocalPersistence,
   updateProfile,
-  sendEmailVerification
+  sendEmailVerification,
+  sendPasswordResetEmail
 } from "firebase/auth";
 import { auth, googleProvider } from '../lib/firebase';
 
