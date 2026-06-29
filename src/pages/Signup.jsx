@@ -60,7 +60,25 @@ export default function Signup() {
       case 'auth/weak-password':
         return 'Password must be at least 6 characters.';
       case 'auth/network-request-failed':
-        return 'Network connection lost.';
+        return 'Please check your internet connection.';
+      case 'auth/popup-closed-by-user':
+        return 'Google sign-in was cancelled.';
+      case 'auth/popup-blocked':
+        return 'Your browser blocked the Google sign-in popup.';
+      case 'auth/cancelled-popup-request':
+        return 'Multiple popup requests were cancelled. Please try again.';
+      case 'auth/account-exists-with-different-credential':
+        return 'An account already exists using another sign-in method.';
+      case 'auth/operation-not-allowed':
+        return 'Google Authentication is disabled in Firebase Console.';
+      case 'auth/unauthorized-domain':
+        return 'This domain is not authorized in Firebase Authentication.';
+      case 'auth/internal-error':
+        return 'An internal Firebase error occurred. Please try again.';
+      case 'auth/invalid-api-key':
+        return 'Firebase API key is invalid or missing.';
+      case 'auth/invalid-credential':
+        return 'Invalid credentials provided.';
       default:
         return 'Signup failed. Please try again.';
     }
@@ -98,11 +116,17 @@ export default function Signup() {
   const handleGoogleSignUp = async () => {
     setError('');
     setLoadingLocal(true);
+    console.log("Starting Google Sign-In...");
     try {
-      await signInWithGoogle();
+      const user = await signInWithGoogle();
+      console.log("Google user:", user);
       navigate('/', { replace: true });
     } catch (err) {
-      console.error('Google sign-up error:', err);
+      console.error("FULL FIREBASE ERROR");
+      console.error(err);
+      console.error(err.code);
+      console.error(err.message);
+      console.error(err.stack);
       setError(getFriendlyErrorMessage(err));
     } finally {
       setLoadingLocal(false);

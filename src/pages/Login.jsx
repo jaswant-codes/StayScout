@@ -39,7 +39,23 @@ export default function Login() {
       case 'auth/unverified-email':
         return 'Please verify your email before logging in. Check your Inbox or Spam folder.';
       case 'auth/network-request-failed':
-        return 'Network connection lost.';
+        return 'Please check your internet connection.';
+      case 'auth/popup-closed-by-user':
+        return 'Google sign-in was cancelled.';
+      case 'auth/popup-blocked':
+        return 'Your browser blocked the Google sign-in popup. Please allow popups.';
+      case 'auth/cancelled-popup-request':
+        return 'Multiple popup requests were cancelled. Please try again.';
+      case 'auth/account-exists-with-different-credential':
+        return 'An account already exists using another sign-in method.';
+      case 'auth/operation-not-allowed':
+        return 'Google Authentication is disabled in Firebase Console.';
+      case 'auth/unauthorized-domain':
+        return 'This domain is not authorized in Firebase Authentication.';
+      case 'auth/internal-error':
+        return 'An internal Firebase error occurred. Please try again.';
+      case 'auth/invalid-api-key':
+        return 'Firebase API key is invalid or missing.';
       default:
         return 'Login failed. Please try again.';
     }
@@ -65,11 +81,17 @@ export default function Login() {
   const handleGoogleSignIn = async () => {
     setError('');
     setLoadingLocal(true);
+    console.log("Starting Google Sign-In...");
     try {
-      await signInWithGoogle();
+      const user = await signInWithGoogle();
+      console.log("Google user:", user);
       navigate(from, { replace: true });
     } catch (err) {
-      console.error('Google sign-in error:', err);
+      console.error("FULL FIREBASE ERROR");
+      console.error(err);
+      console.error(err.code);
+      console.error(err.message);
+      console.error(err.stack);
       setError(getFriendlyErrorMessage(err));
     } finally {
       setLoadingLocal(false);

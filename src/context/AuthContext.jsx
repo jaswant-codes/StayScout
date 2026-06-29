@@ -82,24 +82,9 @@ export function AuthProvider({ children }) {
   };
 
   const signInWithGoogle = async () => {
-    try {
-      const userCredential = await signInWithPopup(auth, googleProvider);
-      return userCredential.user;
-    } catch (error) {
-      if (error.code === 'auth/popup-closed-by-user') {
-        throw new Error('Google sign-in was cancelled.');
-      }
-      if (error.code === 'auth/popup-blocked') {
-        throw new Error('Please allow popups.');
-      }
-      if (error.code === 'auth/account-exists-with-different-credential') {
-        throw new Error('An account already exists with this email.');
-      }
-      if (error.code === 'auth/network-request-failed') {
-        throw new Error('Network connection lost.');
-      }
-      throw error;
-    }
+    // Let the native Firebase error propagate so that UI components have access to the exact error.code
+    const userCredential = await signInWithPopup(auth, googleProvider);
+    return userCredential.user;
   };
 
   const logout = async () => {
