@@ -18,7 +18,9 @@ export default function ForgotPassword() {
 
     try {
       const result = await forgotPassword(email);
-      setSuccess(result.message);
+      setSuccess(
+  "Password reset email sent successfully. Please check your inbox (and Spam folder if needed)."
+);
     } catch (err) {
       console.error('Forgot password error:', err);
       const messages = {
