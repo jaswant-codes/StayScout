@@ -50,15 +50,26 @@ export function AuthProvider({ children }) {
     initializeAuth();
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log("[Auth] onAuthStateChanged fired");
       if (user) {
+        console.log(`[Auth] UID: ${user.uid}`);
+        console.log(`[Auth] Email: ${user.email}`);
+        console.log(`[Auth] Provider IDs: ${user.providerData.map(p => p.providerId).join(', ')}`);
+        console.log(`[Auth] emailVerified: ${user.emailVerified}`);
+
         if (user.emailVerified || user.providerData.some(p => p.providerId === 'google.com')) {
+          // Since currentUser is from the outer scope and state updates are async, 
+          // we log the user that will be set.
+          console.log(`[Auth] currentUser before setCurrentUser:`, currentUser ? currentUser.uid : 'null');
           setCurrentUser(user);
+          console.log(`[Auth] currentUser after setCurrentUser (scheduled):`, user.uid);
         } else {
           // Unverified users are not set in the active session context.
           // (signUp handles its own temporary sign-in to send the verification email and sign out)
           setCurrentUser(null);
         }
       } else {
+        console.log(`[Auth] User is null`);
         setCurrentUser(null);
       }
       

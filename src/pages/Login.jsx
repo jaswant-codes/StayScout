@@ -11,7 +11,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loadingLocal, setLoadingLocal] = useState(false);
   
-  const { signIn, signInWithGoogle, globalAuthError, setGlobalAuthError, isAuthenticated, currentUser } = useAuth();
+  const { signIn, signInWithGoogle, globalAuthError, setGlobalAuthError, isAuthenticated, currentUser, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -20,11 +20,12 @@ export default function Login() {
 
   // If already authenticated, redirect away (handles post-redirect state restoration)
   useEffect(() => {
-    if (isAuthenticated && currentUser) {
+    if (!loading && isAuthenticated && currentUser) {
+      console.log("[Login] useEffect fired: User authenticated. Navigating...");
       const target = (from === '/login' || from === '/signup') ? '/' : from;
       navigate(target, { replace: true });
     }
-  }, [isAuthenticated, currentUser, navigate, from]);
+  }, [loading, isAuthenticated, currentUser, navigate, from]);
 
   // Combine local error with global error from redirect
   const displayError = error || (globalAuthError ? getFriendlyErrorMessage(globalAuthError) : '');
