@@ -17,7 +17,7 @@ export default function ForgotPassword() {
     setLoading(true);
 
     try {
-      const result = await forgotPassword(email);
+       await forgotPassword(email);
       setSuccess(
   "Password reset email sent successfully. Please check your inbox (and Spam folder if needed)."
 );
