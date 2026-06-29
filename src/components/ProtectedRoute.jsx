@@ -21,7 +21,7 @@ export default function ProtectedRoute({ children }) {
     );
   }
 
-  const isVerified = currentUser?.emailVerified || currentUser?.providerData?.some(p => p.providerId === 'google.com');
+  const isVerified = currentUser?.emailVerified;
 
   if (!isAuthenticated || (currentUser && !isVerified)) {
     return <Navigate to="/login" state={{ from: location }} replace />;

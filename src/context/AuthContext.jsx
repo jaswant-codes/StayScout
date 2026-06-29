@@ -2,9 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   setPersistence,
@@ -14,11 +11,8 @@ import {
   sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { auth, db, googleProvider } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 import { AuthContext } from './AuthContextBase';
-
-const isGoogleUser = (user) =>
-  user?.providerData?.some((provider) => provider.providerId === 'google.com');
 
 const getFallbackProfile = (user, role = 'student') => ({
   id: user.uid,
@@ -28,8 +22,8 @@ const getFallbackProfile = (user, role = 'student') => ({
   email: user.email || '',
   photoURL: user.photoURL || '',
   role,
-  provider: isGoogleUser(user) ? 'google.com' : 'password',
-  emailVerified: user.emailVerified || isGoogleUser(user),
+  provider: 'password',
+  emailVerified: user.emailVerified,
 });
 
 export function AuthProvider({ children }) {
@@ -83,21 +77,8 @@ export function AuthProvider({ children }) {
       try {
         console.log("[Auth] 1. Awaiting setPersistence");
         await setPersistence(auth, browserLocalPersistence);
-
-        console.log("[Auth] Current User BEFORE redirect:", auth.currentUser);
-        console.log("[Auth] 2. Awaiting getRedirectResult");
-        const redirectResult = await getRedirectResult(auth);
-        console.log("Redirect Result =", redirectResult);
-        console.log("Current User AFTER redirect =", auth.currentUser);
-        if (redirectResult) {
-          console.log("[Auth] getRedirectResult returned a user:", redirectResult.user.email);
-          setCurrentUser(redirectResult.user);
-          await ensureUserProfile(redirectResult.user);
-        } else {
-          console.log("[Auth] getRedirectResult returned null");
-        }
       } catch (error) {
-        console.error("Redirect flow error:", error);
+        console.error("Auth initialization error:", error);
         setGlobalAuthError(error);
       }
 
@@ -110,12 +91,12 @@ export function AuthProvider({ children }) {
           console.log(`[Auth] Provider IDs: ${user.providerData.map(p => p.providerId).join(', ')}`);
           console.log(`[Auth] emailVerified: ${user.emailVerified}`);
 
-          if (user.emailVerified || isGoogleUser(user)) {
+          if (user.emailVerified) {
             console.log("[Auth] 4. Updating currentUser");
             if (isMounted) setCurrentUser(user);
             await ensureUserProfile(user);
           } else {
-            console.log("[Auth] Setting currentUser to null (unverified/non-google)");
+            console.log("[Auth] Setting currentUser to null (unverified)");
             if (isMounted) {
               setCurrentUser(null);
               setUserProfile(null);
@@ -163,7 +144,7 @@ export function AuthProvider({ children }) {
     // Refresh user data from Firebase to get latest emailVerified status
     await userCredential.user.reload();
     
-    if (!userCredential.user.emailVerified && !isGoogleUser(userCredential.user)) {
+    if (!userCredential.user.emailVerified) {
       await firebaseSignOut(auth);
       const error = new Error('Please verify your email before logging in.');
       error.code = 'auth/unverified-email';
@@ -183,34 +164,7 @@ export function AuthProvider({ children }) {
     await firebaseSignOut(auth);
   };
 
-  const signInWithGoogle = async (role = 'student') => {
-  try {
-    console.log("[Google] Starting Popup");
 
-    const result = await signInWithPopup(auth, googleProvider);
-
-    console.log("[Google] Popup Success");
-    console.log(result.user);
-
-    setCurrentUser(result.user);
-    await ensureUserProfile(result.user, role);
-    return result.user;
-  } catch (error) {
-    console.error("[Google] Popup Error:", error);
-
-    if (
-      error.code === "auth/popup-blocked" ||
-      error.code === "auth/operation-not-supported-in-this-environment"
-    ) {
-      console.log("[Google] Using Redirect");
-
-      await signInWithRedirect(auth, googleProvider);
-      return;
-    }
-
-    throw error;
-  }
-  };
 
   const logout = async () => {
     await firebaseSignOut(auth);
@@ -229,7 +183,6 @@ export function AuthProvider({ children }) {
     signUp,
     signIn,
     forgotPassword,
-    signInWithGoogle,
     logout,
     resendVerification,
   };
