@@ -58,7 +58,7 @@ export default function Signup() {
     return () => {
       if (globalAuthError) setGlobalAuthError(null);
     }
-  }, []);
+  }, [globalAuthError, setGlobalAuthError]);
 
   const strength = getPasswordStrength(password);
 
@@ -115,7 +115,7 @@ export default function Signup() {
 
     try {
       // Create user (which now also sends verification email and logs them out)
-      await signUp(name, email, password);
+      await signUp(name, email, password, role);
       
       setSuccess(true);
       
@@ -137,7 +137,7 @@ export default function Signup() {
     setLoadingLocal(true);
     
     try {
-      await signInWithGoogle();
+      await signInWithGoogle(role);
       // On success (popup), useEffect will handle navigation
     } catch (err) {
       console.error('Google Sign-Up error:', err);

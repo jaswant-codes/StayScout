@@ -35,7 +35,7 @@ export default function Login() {
     return () => {
       if (globalAuthError) setGlobalAuthError(null);
     }
-  }, []);
+  }, [globalAuthError, setGlobalAuthError]);
 
   const getFriendlyErrorMessage = (err) => {
     const code = err.code || '';

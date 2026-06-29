@@ -3,9 +3,24 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
+const configuredAuthDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "dummy-project.firebaseapp.com";
+const runtimeHostname = typeof window !== 'undefined' ? window.location.hostname : '';
+const usesFirebaseHostedDomain =
+  configuredAuthDomain.endsWith('.firebaseapp.com') ||
+  configuredAuthDomain.endsWith('.web.app');
+const isLocalHost =
+  runtimeHostname === 'localhost' ||
+  runtimeHostname === '127.0.0.1' ||
+  runtimeHostname === '';
+const shouldUseAppDomainForAuth =
+  usesFirebaseHostedDomain &&
+  !isLocalHost &&
+  !runtimeHostname.endsWith('.firebaseapp.com') &&
+  !runtimeHostname.endsWith('.web.app');
+
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDummyKeyForDevelopment1234567890",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "dummy-project.firebaseapp.com",
+  authDomain: shouldUseAppDomainForAuth ? runtimeHostname : configuredAuthDomain,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "dummy-project",
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "dummy-project.appspot.com",
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "123456789012",
@@ -18,7 +33,7 @@ console.log("🔥 FIREBASE CONFIG LOADED");
 console.log("=======================================");
 console.log("firebaseConfig =", firebaseConfig);
 console.log("API KEY =", import.meta.env.VITE_FIREBASE_API_KEY);
-console.log("AUTH DOMAIN =", import.meta.env.VITE_FIREBASE_AUTH_DOMAIN);
+console.log("AUTH DOMAIN =", firebaseConfig.authDomain);
 console.log("PROJECT ID =", import.meta.env.VITE_FIREBASE_PROJECT_ID);
 console.log("STORAGE BUCKET =", import.meta.env.VITE_FIREBASE_STORAGE_BUCKET);
 console.log("MESSAGING SENDER ID =", import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID);

@@ -160,6 +160,8 @@ src/
 
 4. **Enable Firebase services** in the Firebase Console:
    - Authentication → Email/Password sign-in
+   - Authentication → Google sign-in
+   - Authentication → Settings → Authorized domains: add your Vercel domain
    - Cloud Firestore → Create database
    - Storage → Set up Cloud Storage
 
@@ -177,7 +179,8 @@ src/
 1. Push your code to GitHub
 2. Import the repository on [vercel.com](https://vercel.com)
 3. Add your Firebase environment variables in Vercel's project settings
-4. Deploy — Vercel auto-detects the Vite build
+4. Keep the `/__/auth/:path*` rewrite in `vercel.json` before the catch-all rewrite. This proxies Firebase Auth's redirect helper on Vercel so Google redirect fallback can restore the Firebase session.
+5. Deploy — Vercel auto-detects the Vite build
 
 ---
 
