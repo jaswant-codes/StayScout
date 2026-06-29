@@ -58,6 +58,10 @@ const signIn = async (email, password) => {
 
   return userCredential.user;
 };
+  const forgotPassword = async (email) => {
+  return await sendPasswordResetEmail(auth, email);
+};
+
 
   const signInWithGoogle = async () => {
     try {
