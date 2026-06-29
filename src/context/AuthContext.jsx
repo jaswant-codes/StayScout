@@ -8,7 +8,8 @@ import {
   setPersistence,
   browserLocalPersistence,
   updateProfile,
-} from 'firebase/auth';
+  sendEmailVerification
+} from "firebase/auth";
 import { auth, googleProvider } from '../lib/firebase';
 
 export const AuthContext = createContext(null);
