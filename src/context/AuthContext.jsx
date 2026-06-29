@@ -81,10 +81,9 @@ export function AuthProvider({ children }) {
     await firebaseSignOut(auth);
   };
 
-  const signInWithGoogle = async () => {
-    // Let the native Firebase error propagate so that UI components have access to the exact error.code
-    const userCredential = await signInWithPopup(auth, googleProvider);
-    return userCredential.user;
+  const signInWithGoogle = () => {
+    // Return the Promise directly to ensure synchronous execution of the popup in UI handlers
+    return signInWithPopup(auth, googleProvider).then(cred => cred.user);
   };
 
   const logout = async () => {

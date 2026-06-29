@@ -113,24 +113,32 @@ export default function Signup() {
     }
   };
 
-  const handleGoogleSignUp = async () => {
+  const handleGoogleSignUp = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    console.log("Starting Google Sign-In...");
+    
+    // 1. MUST start popup immediately BEFORE any React state updates
+    const authPromise = signInWithGoogle();
+    
+    // 2. Now update state safely
     setError('');
     setLoadingLocal(true);
-    console.log("Starting Google Sign-In...");
-    try {
-      const user = await signInWithGoogle();
-      console.log("Google user:", user);
-      navigate('/', { replace: true });
-    } catch (err) {
-      console.error("FULL FIREBASE ERROR");
-      console.error(err);
-      console.error(err.code);
-      console.error(err.message);
-      console.error(err.stack);
-      setError(getFriendlyErrorMessage(err));
-    } finally {
-      setLoadingLocal(false);
-    }
+    
+    // 3. Await the promise resolution
+    authPromise
+      .then((user) => {
+        console.log("Google user:", user);
+        navigate('/', { replace: true });
+      })
+      .catch((err) => {
+        console.error("FULL FIREBASE ERROR");
+        console.error(err);
+        console.error(err.code);
+        console.error(err.message);
+        console.error(err.stack);
+        setError(getFriendlyErrorMessage(err));
+        setLoadingLocal(false);
+      });
   };
 
   return (
