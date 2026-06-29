@@ -29,9 +29,12 @@ export function AuthProvider({ children }) {
       try {
         console.log("[Auth] 1. Awaiting setPersistence");
         await setPersistence(auth, browserLocalPersistence);
-        
+
+        console.log("[Auth] Current User BEFORE redirect:", auth.currentUser);
         console.log("[Auth] 2. Awaiting getRedirectResult");
         const redirectUser = await getRedirectResult(auth);
+        console.log("Redirect Result =", redirectUser);
+console.log("Current User AFTER redirect =", auth.currentUser);
         if (redirectUser) {
           console.log("[Auth] getRedirectResult returned a user:", redirectUser.user.email);
         } else {
@@ -116,18 +119,31 @@ export function AuthProvider({ children }) {
   };
 
   const signInWithGoogle = async () => {
-    try {
-      const cred = await signInWithPopup(auth, googleProvider);
-      return cred.user;
-    } catch (error) {
-      if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
-        console.warn("Popup blocked or closed by user, falling back to redirect...");
-        await signInWithRedirect(auth, googleProvider);
-        return;
-      }
-      throw error;
+  try {
+    console.log("[Google] Starting Popup");
+
+    const result = await signInWithPopup(auth, googleProvider);
+
+    console.log("[Google] Popup Success");
+    console.log(result.user);
+
+    return result.user;
+  } catch (error) {
+    console.error("[Google] Popup Error:", error);
+
+    if (
+      error.code === "auth/popup-blocked" ||
+      error.code === "auth/popup-closed-by-user"
+    ) {
+      console.log("[Google] Using Redirect");
+
+      await signInWithRedirect(auth, googleProvider);
+      return;
     }
-  };
+
+    throw error;
+  }
+};
 
   const logout = async () => {
     await firebaseSignOut(auth);
