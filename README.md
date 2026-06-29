@@ -179,8 +179,9 @@ src/
 1. Push your code to GitHub
 2. Import the repository on [vercel.com](https://vercel.com)
 3. Add your Firebase environment variables in Vercel's project settings
-4. Keep the `/__/auth/:path*` rewrite in `vercel.json` before the catch-all rewrite. This proxies Firebase Auth's redirect helper on Vercel so Google redirect fallback can restore the Firebase session.
-5. Deploy — Vercel auto-detects the Vite build
+4. Keep `VITE_FIREBASE_AUTH_DOMAIN` set to your Firebase auth domain, for example `your_project.firebaseapp.com`. Only use a custom Vercel domain as the Firebase auth domain if the matching `/__/auth/handler` redirect URI is also added to the Google OAuth client.
+5. Keep the `/__/auth/:path*` rewrite in `vercel.json` before the catch-all rewrite if you later choose to proxy Firebase Auth's redirect helper through Vercel.
+6. Deploy — Vercel auto-detects the Vite build
 
 ---
 
