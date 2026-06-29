@@ -31,6 +31,23 @@ export function AuthProvider({ children }) {
       console.error("Redirect flow error:", error);
       setGlobalAuthError(error);
     });
+    let initialRedirectResolved = false;
+    let initialAuthStateResolved = false;
+
+    const initializeAuth = async () => {
+      try {
+        await setPersistence(auth, browserLocalPersistence);
+        await getRedirectResult(auth);
+      } catch (error) {
+        console.error("Redirect flow error:", error);
+        setGlobalAuthError(error);
+      } finally {
+        initialRedirectResolved = true;
+        if (initialAuthStateResolved) setLoading(false);
+      }
+    };
+
+    initializeAuth();
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -44,7 +61,9 @@ export function AuthProvider({ children }) {
       } else {
         setCurrentUser(null);
       }
-      setLoading(false);
+      
+      initialAuthStateResolved = true;
+      if (initialRedirectResolved) setLoading(false);
     });
 
     return () => unsubscribe();
@@ -90,22 +109,18 @@ export function AuthProvider({ children }) {
     await firebaseSignOut(auth);
   };
 
-  const signInWithGoogle = () => {
-    // Return the Promise directly to ensure synchronous execution of the popup in UI handlers
-    return signInWithPopup(auth, googleProvider)
-      .then(cred => cred.user)
-      .catch(error => {
-        // Automatically fallback to redirect if popup is blocked or closed
-        if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
-          console.warn("Popup blocked or closed by user, falling back to redirect...");
-          // Call signInWithRedirect and return a promise that never resolves ONLY if redirect initiates successfully.
-          // If redirect fails, the error will propagate up and clear the loading state.
-          return signInWithRedirect(auth, googleProvider).then(() => {
-            return new Promise(() => {}); 
-          });
-        }
-        throw error;
-      });
+  const signInWithGoogle = async () => {
+    try {
+      const cred = await signInWithPopup(auth, googleProvider);
+      return cred.user;
+    } catch (error) {
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
+        console.warn("Popup blocked or closed by user, falling back to redirect...");
+        await signInWithRedirect(auth, googleProvider);
+        return;
+      }
+      throw error;
+    }
   };
 
   const logout = async () => {

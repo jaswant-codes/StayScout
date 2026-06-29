@@ -5,6 +5,8 @@ export default function ProtectedRoute({ children }) {
   const { currentUser, loading, isAuthenticated } = useAuth();
   const location = useLocation();
 
+  console.error("[DEBUG] ProtectedRoute rendered. Path:", location.pathname, "loading:", loading, "isAuthenticated:", isAuthenticated, "currentUser:", currentUser ? currentUser.email : "null");
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-dark-900">

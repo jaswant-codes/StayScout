@@ -11,12 +11,20 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loadingLocal, setLoadingLocal] = useState(false);
   
-  const { signIn, signInWithGoogle, globalAuthError, setGlobalAuthError } = useAuth();
+  const { signIn, signInWithGoogle, globalAuthError, setGlobalAuthError, isAuthenticated, currentUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   // Redirect to previous page or home
   const from = location.state?.from?.pathname || '/';
+
+  // If already authenticated, redirect away (handles post-redirect state restoration)
+  useEffect(() => {
+    if (isAuthenticated && currentUser) {
+      const target = (from === '/login' || from === '/signup') ? '/' : from;
+      navigate(target, { replace: true });
+    }
+  }, [isAuthenticated, currentUser, navigate, from]);
 
   // Combine local error with global error from redirect
   const displayError = error || (globalAuthError ? getFriendlyErrorMessage(globalAuthError) : '');
@@ -78,42 +86,28 @@ export default function Login() {
 
     try {
       await signIn(email, password);
-      // Let AuthContext's onAuthStateChanged handle the session
-      navigate(from, { replace: true });
+      // Let AuthContext's onAuthStateChanged handle the session via useEffect
     } catch (err) {
       console.error('Login error:', err);
       setError(getFriendlyErrorMessage(err));
-    } finally {
       setLoadingLocal(false);
     }
   };
 
-  const handleGoogleSignIn = (e) => {
+  const handleGoogleSignIn = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
-    console.log("Starting Google Sign-In...");
     
-    // 1. MUST start popup immediately BEFORE any React state updates
-    const authPromise = signInWithGoogle();
-    
-    // 2. Now update state safely
     setError('');
     setLoadingLocal(true);
     
-    // 3. Await the promise resolution
-    authPromise
-      .then((user) => {
-        console.log("Google user:", user);
-        navigate(from, { replace: true });
-      })
-      .catch((err) => {
-        console.error("FULL FIREBASE ERROR");
-        console.error(err);
-        console.error(err.code);
-        console.error(err.message);
-        console.error(err.stack);
-        setError(getFriendlyErrorMessage(err));
-        setLoadingLocal(false);
-      });
+    try {
+      await signInWithGoogle();
+      // On success (popup), useEffect will handle navigation
+    } catch (err) {
+      console.error('Google Sign-In error:', err);
+      setError(getFriendlyErrorMessage(err));
+      setLoadingLocal(false);
+    }
   };
 
   return (
