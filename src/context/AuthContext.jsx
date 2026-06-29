@@ -38,6 +38,7 @@ export function AuthProvider({ children }) {
         displayName: name,
         photoURL: '', // Empty for email users as requested
       });
+      await sendEmailVerification(userCredential.user);
       // Force refresh of the user object to reflect the new displayName
       setCurrentUser({ ...userCredential.user });
     }
