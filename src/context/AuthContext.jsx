@@ -94,6 +94,7 @@ const signIn = async (email, password) => {
     isAuthenticated: !!currentUser,
     signUp,
     signIn,
+    forgotPassword,
     signInWithGoogle,
     logout,
   };
