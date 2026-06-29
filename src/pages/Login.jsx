@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { LogIn, Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
@@ -11,12 +11,22 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loadingLocal, setLoadingLocal] = useState(false);
   
-  const { signIn, signInWithGoogle } = useAuth();
+  const { signIn, signInWithGoogle, globalAuthError, setGlobalAuthError } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   // Redirect to previous page or home
   const from = location.state?.from?.pathname || '/';
+
+  // Combine local error with global error from redirect
+  const displayError = error || (globalAuthError ? getFriendlyErrorMessage(globalAuthError) : '');
+
+  // Clear global error when local error is set or component unmounts
+  useEffect(() => {
+    return () => {
+      if (globalAuthError) setGlobalAuthError(null);
+    }
+  }, []);
 
   const getFriendlyErrorMessage = (err) => {
     const code = err.code || '';
@@ -125,10 +135,10 @@ export default function Login() {
 
         {/* Form */}
         <div className="glass-strong rounded-3xl p-8 sm:p-10 shadow-2xl relative z-10 backdrop-blur-2xl">
-          {error && (
+          {displayError && (
             <div className="flex items-start gap-2 p-3 rounded-lg bg-error/10 border border-error/20 text-error text-sm mb-5 animate-fade-in">
               <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
-              <span>{error}</span>
+              <span>{displayError}</span>
             </div>
           )}
 

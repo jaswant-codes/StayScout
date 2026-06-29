@@ -3,6 +3,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   setPersistence,
@@ -18,10 +20,17 @@ export const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [globalAuthError, setGlobalAuthError] = useState(null);
 
   useEffect(() => {
     // Set persistence
     setPersistence(auth, browserLocalPersistence).catch(console.error);
+
+    // Check for redirect result on mount
+    getRedirectResult(auth).catch((error) => {
+      console.error("Redirect flow error:", error);
+      setGlobalAuthError(error);
+    });
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -83,7 +92,18 @@ export function AuthProvider({ children }) {
 
   const signInWithGoogle = () => {
     // Return the Promise directly to ensure synchronous execution of the popup in UI handlers
-    return signInWithPopup(auth, googleProvider).then(cred => cred.user);
+    return signInWithPopup(auth, googleProvider)
+      .then(cred => cred.user)
+      .catch(error => {
+        // Automatically fallback to redirect if popup is blocked or closed
+        if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
+          console.warn("Popup blocked or closed by user, falling back to redirect...");
+          // Call signInWithRedirect and return a promise that never resolves (so UI stays in loading state until redirect happens)
+          signInWithRedirect(auth, googleProvider);
+          return new Promise(() => {}); 
+        }
+        throw error;
+      });
   };
 
   const logout = async () => {
@@ -93,6 +113,8 @@ export function AuthProvider({ children }) {
   const value = {
     currentUser,
     loading,
+    globalAuthError,
+    setGlobalAuthError,
     isAuthenticated: !!currentUser,
     signUp,
     signIn,

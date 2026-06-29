@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import {
@@ -39,8 +39,18 @@ export default function Signup() {
   const [loadingLocal, setLoadingLocal] = useState(false);
   const [success, setSuccess] = useState(false);
   
-  const { signUp, signInWithGoogle } = useAuth();
+  const { signUp, signInWithGoogle, globalAuthError, setGlobalAuthError } = useAuth();
   const navigate = useNavigate();
+
+  // Combine local error with global error from redirect
+  const displayError = error || (globalAuthError ? getFriendlyErrorMessage(globalAuthError) : '');
+
+  // Clear global error when local error is set or component unmounts
+  useEffect(() => {
+    return () => {
+      if (globalAuthError) setGlobalAuthError(null);
+    }
+  }, []);
 
   const strength = getPasswordStrength(password);
 
@@ -160,10 +170,10 @@ export default function Signup() {
 
         {/* Form */}
         <div className="glass-strong rounded-3xl p-8 sm:p-10 shadow-2xl relative z-10 backdrop-blur-2xl">
-          {error && (
+          {displayError && (
             <div className="flex items-center gap-2 p-3 rounded-lg bg-error/10 border border-error/20 text-error text-sm mb-5 animate-fade-in">
               <AlertCircle size={16} />
-              {error}
+              {displayError}
             </div>
           )}
 
