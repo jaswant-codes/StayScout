@@ -23,61 +23,56 @@ export function AuthProvider({ children }) {
   const [globalAuthError, setGlobalAuthError] = useState(null);
 
   useEffect(() => {
-    // Set persistence
-    setPersistence(auth, browserLocalPersistence).catch(console.error);
-
-    // Check for redirect result on mount
-    getRedirectResult(auth).catch((error) => {
-      console.error("Redirect flow error:", error);
-      setGlobalAuthError(error);
-    });
-    let initialRedirectResolved = false;
-    let initialAuthStateResolved = false;
+    let unsubscribe;
 
     const initializeAuth = async () => {
       try {
+        console.log("[Auth] 1. Awaiting setPersistence");
         await setPersistence(auth, browserLocalPersistence);
-        await getRedirectResult(auth);
+        
+        console.log("[Auth] 2. Awaiting getRedirectResult");
+        const redirectUser = await getRedirectResult(auth);
+        if (redirectUser) {
+          console.log("[Auth] getRedirectResult returned a user:", redirectUser.user.email);
+        } else {
+          console.log("[Auth] getRedirectResult returned null");
+        }
       } catch (error) {
         console.error("Redirect flow error:", error);
         setGlobalAuthError(error);
-      } finally {
-        initialRedirectResolved = true;
-        if (initialAuthStateResolved) setLoading(false);
       }
+
+      console.log("[Auth] 3. Registering onAuthStateChanged");
+      unsubscribe = onAuthStateChanged(auth, async (user) => {
+        console.log("[Auth] onAuthStateChanged fired");
+        if (user) {
+          console.log(`[Auth] UID: ${user.uid}`);
+          console.log(`[Auth] Email: ${user.email}`);
+          console.log(`[Auth] Provider IDs: ${user.providerData.map(p => p.providerId).join(', ')}`);
+          console.log(`[Auth] emailVerified: ${user.emailVerified}`);
+
+          if (user.emailVerified || user.providerData.some(p => p.providerId === 'google.com')) {
+            console.log("[Auth] 4. Updating currentUser");
+            setCurrentUser(user);
+          } else {
+            console.log("[Auth] Setting currentUser to null (unverified/non-google)");
+            setCurrentUser(null);
+          }
+        } else {
+          console.log("[Auth] User is null. Setting currentUser to null.");
+          setCurrentUser(null);
+        }
+        
+        console.log("[Auth] 5. Setting loading to false");
+        setLoading(false);
+      });
     };
 
     initializeAuth();
 
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log("[Auth] onAuthStateChanged fired");
-      if (user) {
-        console.log(`[Auth] UID: ${user.uid}`);
-        console.log(`[Auth] Email: ${user.email}`);
-        console.log(`[Auth] Provider IDs: ${user.providerData.map(p => p.providerId).join(', ')}`);
-        console.log(`[Auth] emailVerified: ${user.emailVerified}`);
-
-        if (user.emailVerified || user.providerData.some(p => p.providerId === 'google.com')) {
-          // Since currentUser is from the outer scope and state updates are async, 
-          // we log the user that will be set.
-          console.log(`[Auth] currentUser before setCurrentUser:`, currentUser ? currentUser.uid : 'null');
-          setCurrentUser(user);
-          console.log(`[Auth] currentUser after setCurrentUser (scheduled):`, user.uid);
-        } else {
-          // Unverified users are not set in the active session context.
-          // (signUp handles its own temporary sign-in to send the verification email and sign out)
-          setCurrentUser(null);
-        }
-      } else {
-        console.log(`[Auth] User is null`);
-        setCurrentUser(null);
-      }
-      
-      initialAuthStateResolved = true;
-      if (initialRedirectResolved) setLoading(false);
-    });
-
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const signUp = async (name, email, password) => {
